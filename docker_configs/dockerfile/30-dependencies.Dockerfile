@@ -14,9 +14,9 @@ RUN sudo rm -rf /tmp/dependencies
 USER root
 
 # Add dependency install script
-COPY docker_configs/install_dependencies.sh /home/${APP_USER}/catkin_ws/install_dependencies.sh
-RUN chown ${APP_USER}:${APP_USER} /home/${APP_USER}/catkin_ws/install_dependencies.sh
-RUN chmod 774 /home/${APP_USER}/catkin_ws/install_dependencies.sh
+# COPY docker_configs/install_dependencies.sh /home/${APP_USER}/catkin_ws/install_dependencies.sh
+# RUN chown ${APP_USER}:${APP_USER} /home/${APP_USER}/catkin_ws/install_dependencies.sh
+# RUN chmod 774 /home/${APP_USER}/catkin_ws/install_dependencies.sh
 
 # [PLACE FOR ADDITIONAL DEPENDENCIES]
 # RUN \

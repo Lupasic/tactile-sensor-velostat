@@ -1,7 +1,7 @@
 FROM ubuntu:20.04
 # FROM osrf/ros:melodic-desktop-bionic
 
-ARG APP_UID=1001
+ARG APP_UID
 
 ENV \
   DEBIAN_FRONTEND=noninteractive \

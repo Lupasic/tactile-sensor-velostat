@@ -3,7 +3,7 @@
   - [Experimental setup](#experimental-setup)
 - [Quick start](#quick-start)
   - [1. Start to work in computer environment](#1-start-to-work-in-computer-environment)
-    - [Docker usefull commands](#docker-usefull-commands)
+    - [Docker useful commands](#docker-useful-commands)
   - [3. Update code on STM32](#3-update-code-on-stm32)
   - [4. Calibrate force sensor](#4-calibrate-force-sensor)
 - [Useful links](#useful-links)
@@ -29,14 +29,14 @@ field and UR5e
 
 # Quick start
 ## 1. Start to work in computer environment
-1. Build the dockerfile ```$ sh ./docker_configs/dockerfile.sh | docker build -t tactile_sensor_velostat -f - .```
+1. Build the dockerfile ```sh ./docker_configs/dockerfile.sh | docker build --build-arg APP_UID=$(id -u ${USER}) -t tactile_sensor_velostat -f - .```
 2. * Either use ```sh start_to_work.sh``` (open 3 term tabs, with git, docker-compose and docker exec) (might be needed to do 2.2 before it, if simulator won't work)
    1. Or ```docker-compose -f docker-compose_nvidia.yml up``` if you have nvidia on a laptop, or ```docker-compose -f docker-compose.yml up``` if other (intel, amd)
    2.  ```$ sudo xhost +local:root```
    3.   ```docker exec -it --privileged tactile-sensor-velostat_master_1 bash``` start to work in docker
 3. Start to work
 
-### Docker usefull commands
+### Docker useful commands
 * ``docker rm -f $(docker ps -a -q) clean all containers from pc``
 * ``docker rmi -f $(docker images -a -q) clean all images from pc``
 
