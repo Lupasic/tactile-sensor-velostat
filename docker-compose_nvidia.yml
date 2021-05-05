@@ -1,0 +1,19 @@
+version: '2.3'
+
+services:
+  master:
+    image: tactile_sensor_velostat
+    runtime: nvidia
+    restart: always
+    ports:
+      - '2222:22'
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ./src:/home/app/tactile_sensor_velostat
+      - /dev:/dev
+    environment:
+      - DISPLAY=${DISPLAY}
+    devices:
+      - /dev/input:/dev/input
+      - /dev/dri:/dev/dri
+

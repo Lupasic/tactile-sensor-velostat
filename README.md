@@ -1,11 +1,13 @@
-**Table of Contents**
-- [](#)
+- [Introduction](#introduction)
+  - [Motivation](#motivation)
+  - [Experimental setup](#experimental-setup)
 - [Quick start](#quick-start)
   - [1. Start to work in computer environment](#1-start-to-work-in-computer-environment)
-  - [2. Upload code to Jetson Nano](#2-upload-code-to-jetson-nano)
+    - [Docker usefull commands](#docker-usefull-commands)
   - [3. Update code on STM32](#3-update-code-on-stm32)
   - [4. Calibrate force sensor](#4-calibrate-force-sensor)
 - [Useful links](#useful-links)
+
 
 # Introduction
 ## Motivation
@@ -14,11 +16,11 @@ This repository was made for support a scientific paper *"Design of a low-cost t
 <img src="figs/experimental_setup1.jpg" width="500" >
 
 This repo contains code for:
-* Arduino: send data from ground truth 1DOF force sensor Futek LTH350 to PC
-* UR5: control manipulator and write down timestamps when it reach needed points
-* Velostat tactile sensor: receive data from STM32, decode it and write down to file
-* STM32: to receive data from sensor and encode it for sending to PC via RS485
-* Postprocessing: Matlab code for making plots
+* **Arduino**: send data from ground truth 1DOF force sensor Futek LTH350 to PC
+* **UR5**: control manipulator and write down timestamps when it reach needed points
+* **Velostat tactile sensor**: receive data from STM32, decode it and write down to file
+* **STM32**: to receive data from sensor and encode it for sending to PC via RS485
+* **Postprocessing**: Matlab code for making plots
 
 ## Experimental setup
 field and UR5e
@@ -31,8 +33,12 @@ field and UR5e
 2. * Either use ```sh start_to_work.sh``` (open 3 term tabs, with git, docker-compose and docker exec) (might be needed to do 2.2 before it, if simulator won't work)
    1. Or ```docker-compose -f docker-compose_nvidia.yml up``` if you have nvidia on a laptop, or ```docker-compose -f docker-compose.yml up``` if other (intel, amd)
    2.  ```$ sudo xhost +local:root```
-   3.   ```docker exec -it --privileged tactile_sensor_velostat_ros-master_1 bash``` start to work in docker
+   3.   ```docker exec -it --privileged tactile-sensor-velostat_master_1 bash``` start to work in docker
 3. Start to work
+
+### Docker usefull commands
+* ``docker rm -f $(docker ps -a -q) clean all containers from pc``
+* ``docker rmi -f $(docker images -a -q) clean all images from pc``
 
 ## 3. Update code on STM32
 1. TODO
@@ -41,6 +47,8 @@ field and UR5e
 ## 4. Calibrate force sensor
 
 
+
+###
 
 
 # Useful links
