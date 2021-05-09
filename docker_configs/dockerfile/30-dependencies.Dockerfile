@@ -7,7 +7,9 @@ COPY . /tmp/dependencies
 # RUN find /tmp/dependencies -name python2requirements.txt -exec pip2 install -r {} \;
 
 # Install python3 requirements
-RUN find /tmp/dependencies -name python3requirements.txt -exec pip3 install -r {} \;
+# USER root
+
+RUN sudo find /tmp/dependencies -name python3requirements.txt -exec pip3 install -r {} \;
 
 RUN sudo rm -rf /tmp/dependencies
 

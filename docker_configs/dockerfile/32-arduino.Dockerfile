@@ -42,6 +42,10 @@ SHELL ["/bin/bash","-c"]
 # Working directory
 WORKDIR ${A_HOME}
 
+RUN usermod -a -G dialout ${APP_USER}
+
+# RUN echo "KERNEL=="tty*",MODE="0666"" >> /etc/udev/rules.d/99-serial.rules
+
 # Get updates and install dependencies
 RUN apt-get update && apt-get install wget tar xz-utils git xvfb libxtst6 -y && apt-get clean && rm -rf /var/lib/apt/list/*
 

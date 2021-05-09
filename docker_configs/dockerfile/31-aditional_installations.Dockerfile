@@ -5,5 +5,5 @@ RUN apt-get update && apt-get install -q -y \
     libxtst6 && \
   pip3 install \
     matplotlib \
-    serial && \
+    pyserial && \
   rm -rf /var/lib/apt/lists/*

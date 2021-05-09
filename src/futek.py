@@ -1,54 +1,75 @@
 #!/usr/bin/python3
 
-# import serial
+""" This code contains a class for working with Futek force sensor via serial port """
+
+import struct
 from serial import Serial, SerialException
-import time
+import datetime
 
 class Futek:
-    # ser = None
-    # text_file = None
-    # file_name = ''
-    # port = ''
+    """ Main class """
+    time_stamp = False
     __open_file_fl__ = 0 
-    def __init__(self, port='/dev/ttyACM0', baudrate=9600, debug = 0):
+    def __init__(self, port='/dev/ttyACM0', baudrate=9600, debug = 1):
+        """ Open serial port if needed.
+        Args:
+            debug - if true, other methods print information
+         """
         self.port = port
         self._debug = debug
-        self.ser = Serial(port,baudrate,timeout=0.02)
+        self.text_file = None
+        self.ser = Serial(port,baudrate,timeout=1)
         try:
-            self.ser.open()
-            print ("Port has been opened")
+            if not self.ser.isOpen():
+                self.ser.open()            
+                print("Port has been opened")
+            else:
+                print("Port was opened before")
         except SerialException as e:
-            print ("error open serial port: ") + str(e)
+            print ("error open serial port")
             exit()
+        # Needed to read a trash first
+        self.ser.readline()
+        self.ser.readline()
+        self.ser.readline()
     
     def readData(self, write_to_file=0):
-        reading = self.ser.readline().decode('utf-8')
-        if self._debug:
-            print(reading)
-        if write_to_file:
-            write_to_file(reading)
-        return reading
+        """ Read data from serial port and print to file if needed"""
+        try:
+            # reading = self.ser.read_until()
+            reading = self.ser.readline().decode('utf-8')
+            if self._debug:
+                print(reading)
+            if write_to_file:
+                self.write_data_to_file(reading)
+            return reading
+        except Exception:
+            pass
+            return None
 
 
     def open_file(self):
-        te = time.gmtime()
-        cur_time_string = str(te.tm_mday)+"."+str(te.tm_mon)+"."+str(te.tm_year)+"_"+ str(te.tm_hour+3)+":"+ str(te.tm_min)+":" + str(te.tm_sec)
-        self.file_name = "exp_data/Experiment_" + cur_time_string + ".txt"
+        temp_name = int(input("input pure file name: "))
+        if self.time_stamp:
+            pure_file_name = temp_name + "_" + datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
+        else:
+            pure_file_name = temp_name
+        self.file_name = "futek_data/experiment_" + pure_file_name + ".txt"
         self.text_file = open(file_name,"w")
 
     def write_data_to_file(self, data):
+        """Open file if it is needed and write data and timestamp to file. Filename """
         if self.__open_file_fl__ == 0:
-            open_file()
+            self.open_file()
             self.__open_file_fl__ = 1
-        else:
-            te = time.gmtime()
-            text_file.write(str(data) + " " + str(te.tm_hour+3)+":"+ str(te.tm_min)+":" + str(te.tm_sec))
+        self.text_file.write(str(data) + " " + datetime.datetime.now().timestamp())
 
             
     def close(self):
+        """ Close port and file (if exists and open)"""
         if self.ser.isOpen():
             self.ser.close()
             print("\n Close " + self.port + " port")
-        if self.text_file.isOpen():
+        if self.text_file is not None:
             self.text_file.close()
             print("\n Close " + self.file_name + " file")
