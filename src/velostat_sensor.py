@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+# https://docs-python.ru/standart-library/modul-datetime-python/primery-ispolzovanija-datetime-datetime/
 from serial import Serial
 import struct
 import time
@@ -7,9 +8,7 @@ import time
 class VelostatSensor:
     """ The class of our handmade sensor, which provide the interface for reading data from IMU and force sensors """
     time_stamp = False
-    __open_file_fl__ = 0
-
-    def __init__(self, port='/dev/ttyUSB0', baudrate=115200, imu_bytes=0, force_bytes=8, debug = 0):
+    def __init__(self, port='/dev/ttyUSB0', baudrate=115200, imu_bytes=0, force_bytes=8, debug = 1, write_to_fl=1):
         '''
         If some data is not exist (for instance we are not sending imu data), then imu_bytes should be equal to 0
 
@@ -30,9 +29,8 @@ class VelostatSensor:
             print ("error open serial port")
             exit()
         # Needed to read a trash first
-        self.ser.readline()
-        self.ser.readline()
-        self.ser.readline()
+        if write_to_fl:
+            self.open_file()
     
     def read_all_data(self, write_to_file=0):
         """ Docstring """

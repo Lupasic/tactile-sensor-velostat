@@ -6,9 +6,9 @@ from futek import Futek
 # import velostat_sensor
 
 a = Futek()
+k = a.readData(write_to_file=1)
 k = a.readData()
-k = a.readData()
-k = a.readData()
+k = a.readData(write_to_file=1)
 # while True:
     # k = a.readData()
     # time.sleep(0.02)

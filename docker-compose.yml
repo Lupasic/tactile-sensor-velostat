@@ -2,6 +2,7 @@ version: '2.3'
 
 services:
   master:
+    privileged: true
     image: tactile_sensor_velostat
     restart: always
     ports:
