@@ -25,8 +25,8 @@ void loop() {
   outputValue = val_filter;
   //outputValue = map(val_filter, 0, 1023, 0, 1023);
   // print the results to the Serial Monitor:
-//  Serial.println(outputValue);
-  Serial.println(k);
+  Serial.println(outputValue);
+//  Serial.println(k);
 //  Serial.write(k);
 //  Serial.write('\n');
   // wait 2 milliseconds before the next loop for the analog-to-digital
