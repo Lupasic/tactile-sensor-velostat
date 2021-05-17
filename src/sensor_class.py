@@ -18,14 +18,9 @@ class SensorBase:
         self.port = port
         self._debug = debug
         self.text_file = None
-        self.ser = Serial(port,baudrate,timeout=1)
         try:
-            if not self.ser.isOpen():
-                self.ser.open()            
-                print("Port has been opened")
-            else:
-                print("Port was opened before")
-        except SerialException as e:
+            self.ser = Serial(port,baudrate,timeout=1)
+        except SerialException:
             print ("error open serial port")
             exit()
         if write_to_fl:

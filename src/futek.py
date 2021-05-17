@@ -2,10 +2,12 @@
 
 """ This code contains a class for working with Futek force sensor via serial port """
 
+from serial.serialutil import to_bytes
 from sensor_class import SensorBase
 import struct
 from serial import Serial, SerialException
 import datetime
+import time
 
 class Futek(SensorBase):
     """ Main class """
@@ -18,20 +20,26 @@ class Futek(SensorBase):
         self.port = port
         self._debug = debug
         # Needed to read a trash first
-        self.ser.readline()
-        self.ser.readline()
-        self.ser.readline()
+        time.sleep(3)
     
     def readData(self, write_to_file=0, msg=""):
         """ Read data from serial port and print to file if needed"""
+        # self.ser.flush()
+        self.ser.write(b"kek\n")
         try:
-            reading = int(self.ser.readline().decode('utf-8'))
+            s = ''
+            while len(s) == 0:
+                s = self.ser.readline().decode('utf-8').strip()
+                break
+            reading = int(s)
+            # reading = int(self.ser.read(self.ser.inWaiting()).decode('utf-8'))
             self.cur_timestamp = datetime.datetime.now().timestamp()
             if self._debug:
                 print(reading)
             if write_to_file:
                 self.write_data_to_file(reading,msg=msg)
             return reading
-        except Exception:
+        except Exception as e:
+            print(e)
             print("Data was corrupted")
             return -1

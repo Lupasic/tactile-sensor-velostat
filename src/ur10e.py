@@ -11,14 +11,16 @@ import math3d as m3d
 # https://s3-eu-west-1.amazonaws.com/ur-support-site/105198/scriptManual_SW5.10.pdf
 
 class UR10:
-    def __init__(self, address="172.31.1.25", debug = 1):
+    def __init__(self, address="172.31.1.25", debug = 1, enable_force=True):
         self._debug = debug
+        self.enable_force = enable_force
         self.rob = urx.Robot(address, use_rt=False)
-        self.futek = Futek(debug=0)
-        self._acc = 0.01
-        self._vec = 0.01
+        if enable_force:
+            self.futek = Futek(debug=1)
+        self._acc = 0.02
+        self._vec = 0.02
         # todo
-        self._common_orient=[1,1,1]
+        self._common_orient=[3.14,0.1,0]
     
     def touch_ground(self, needed_force=98):
         cur_pose = self.rob.getl()
@@ -30,18 +32,19 @@ class UR10:
             print(cur_pose)
         self.rob.movel(cur_pose, acc=self._acc, vel=self._vec, wait=False, relative=False, threshold=None)
         while True:
-            try:
-                if self.futek.readData(write_to_file=0)>=needed_force:
-                    print("End-effector touched ground")
-                    self.futek.readData(write_to_file=1,msg="touch_grd")
-                    self.rob
-                    # robot.up(z=0.05, acc=0.01, vel=0.01)
-                    break
-            except Exception:
-                print("Corrupted")
-                pass
+            # try:
+            temp = self.futek.readData(write_to_file=0)
+            print(temp)
+            if self.futek.readData(write_to_file=0)>=needed_force:
+                print("End-effector touched ground")
+                self.futek.readData(write_to_file=1,msg="touch_grd")
+                self.rob.stop()
+                break
+            # except Exception:
+            #     print("Corrupted")
+            #     pass
 
-    def up(self, wait=True,dz=0.05):
+    def up(self, wait=True,dz=0.01):
         if wait:
             self.rob.up(z=dz, acc=self._acc, vel=self._vec)
         else:
@@ -57,76 +60,76 @@ class UR10:
         pass
 
     def forward(self, dx, dy, wait=True):
-        # cur_pose = self.rob.getl()
-        # cur_pose[0] -= dx
-        # cur_pose[1] -= dy
-        # if self._debug:
-        #     print(cur_pose)
         self.rob.movel([-dx,-dy,0,0,0,0], acc=self._acc, vel=self._vec, wait=wait, relative=True, threshold=None)
 
     def point_load(self, sleep_time=0, needed_force=98):
         self.touch_ground(needed_force=needed_force)
         time.sleep(sleep_time)
         self.futek.readData(write_to_file=1,msg="go_up_point")
-        self.up()
+        # self.up()
     
     def rolling_load(self,dx,dy,needed_force=98):
         self.touch_ground(needed_force=needed_force)
         self.forward(dx,dy)
         self.futek.readData(write_to_file=1,msg="go_up_roll")
-        self.up()
+        # self.up()
 
-    def test_flat_sensor_point_load(self, init_pose, l, w, sleep_time, lp, wp, repeats=3, needed_force=98,updz=0.05):
+    def test_flat_sensor_point_load(self, init_pose, l, w, lp, wp, sleep_time, repeats=3, needed_force=98,updz=0.04):
         # l and w in mm"
         l = l/1000
         w = w/1000
         
-        init_pose[2]=init_pose+updz
+        init_pose[2]=init_pose[2]+updz
         self.rob.movel(init_pose, acc=self._acc, vel=self._vec, wait=True, relative=False, threshold=None)
-        self.futek.readData(write_to_file=1,msg="start_exp")
+        if self.enable_force:
+            self.futek.readData(write_to_file=1,msg="start_exp")
         for i in range(repeats):
             self.rob.movel(init_pose, acc=self._acc, vel=self._vec, wait=True, relative=False, threshold=None)
-            self.futek.readData(write_to_file=1,msg="start_"+i+"_rep")
+            if self.enable_force:
+                self.futek.readData(write_to_file=1,msg="start_"+str(i)+"_iteration")
             cur_points=[]
-            for xx in range(0,lp,l/lp):
-                for yy in range(0,wp,w/wp):
-                    temp = np.array(init_pose)+np.array([xx,yy]+init_pose[2:])
+            for xx in np.arange(0,l+l/lp,l/lp):
+                for yy in np.arange(0,w+w/wp,w/wp):
+                    temp = np.array(init_pose)-np.array([xx,yy]+[0,0,0,0])
                     cur_points.append(list(temp))
-            if self._debug:
-                print(cur_points)
+            # if self._debug:
+            #     print(cur_points)
             for cur_poss in cur_points:
                 self.rob.movel(cur_poss, acc=self._acc, vel=self._vec, wait=True, relative=False, threshold=None)
-                self.point_load(sleep_time=sleep_time,needed_force=needed_force)
+                # self.point_load(sleep_time=sleep_time,needed_force=needed_force)
+                self.rolling_load(0.1,0)
+
+    def freedrive_transient(self, timeout=30):
+        self.rob.set_freedrive(1, timeout=timeout)
+        time.sleep(timeout)
             
 
 
-
-
 if __name__ == '__main__':
-    # address="172.31.1.25"
-    # rob = urx.Robot(address, use_rt=False)
-    ur10 = UR10()
+    starting_pos = [-0.6284734457983073, 0.04110124901844167, 0.24322792682955954, 2.885542842994124, -0.09630215284222861, -0.8197553730344054]
+    ur10 = UR10(enable_force=1)
     print(ur10.rob)
-    sensor = Futek(debug=0)
-    print(sensor.readData())
-    print("kek")
-
-    pose = robot.getl()
-    pose[2] -= 0.5
-    # pose[3] = -pose[3]
-    # pose[4] = -pose[4]
-    print(pose)
-    robot.movel(pose, acc=0.01, vel=0.01, wait=False, relative=False, threshold=None)
-    while True:
-        try:
-            if sensor.readData(write_to_file=0)>98:
-                print("i am here")
-                sensor.readData(write_to_file=1)
-                robot.stop()
-                robot.up(z=0.05, acc=0.01, vel=0.01)
-                break
-        except Exception:
-            print("Bleat")
-            pass
-    print("hooray")
-        
+    # for i in range(1):
+    #     ur10.point_load()
+    #     time.sleep(10)
+    #     ur10.futek.readData(write_to_file=1,msg="kek1")
+    #     time.sleep(5)
+    #     ur10.futek.readData(write_to_file=1,msg="kek2")
+    #     ur10.up(dz=0.01)
+    #     ur10.futek.readData(write_to_file=1,msg="kek3")
+    #     time.sleep(5)
+    #     ur10.futek.readData(write_to_file=1,msg="kek4")
+                
+        # ur10.up(dz=0.05)
+    print("start freedrive")
+    ur10.freedrive_transient(15)
+    print("end freedrive")
+    sensor_init_pose = ur10.rob.getl()
+    print(sensor_init_pose)
+    sensor_init_pose = sensor_init_pose[:3] + ur10._common_orient
+    print(sensor_init_pose)
+    ur10.rob.movel(starting_pos,ur10._acc,ur10._vec,wait=True)
+    ur10.test_flat_sensor_point_load(sensor_init_pose,50,40,4,5,0,1)
+    ur10.rob.movel(starting_pos,ur10._acc,ur10._vec,wait=True)
+    ur10.forward(0.05,0)
+    ur10.futek.close()
