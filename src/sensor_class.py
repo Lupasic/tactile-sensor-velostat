@@ -20,7 +20,8 @@ class SensorBase:
         self.text_file = None
         try:
             self.ser = Serial(port,baudrate,timeout=1)
-        except SerialException:
+        except SerialException as e:
+            print(e)
             print ("error open serial port")
             exit()
         if write_to_fl:

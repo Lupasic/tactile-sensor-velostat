@@ -1,10 +1,9 @@
 #!/usr/bin/python3
 
 # https://docs-python.ru/standart-library/modul-datetime-python/primery-ispolzovanija-datetime-datetime/
-from serial import Serial
 import struct
 from sensor_class import SensorBase
-import time
+import datetime
 
 class VelostatSensor(SensorBase):
     """ The class of our handmade sensor, which provide the interface for reading data from IMU and force sensors """
@@ -26,9 +25,10 @@ class VelostatSensor(SensorBase):
         """ Docstring """
         full_array = []
         data = self.ser.read(self.imu_bytes + self.force_bytes)
+        self.cur_timestamp = datetime.datetime.now().timestamp()
         for b in struct.iter_unpack('<f', data[:self.imu_bytes]):
             full_array.append(b[0])
-        for d in struct.iter_unpack('<h',data[self.imu_bytes:]):
+        for d in struct.iter_unpack('<H',data[self.imu_bytes:]):
             full_array.append(d[0])
         if self._debug:
             print(full_array)
@@ -56,3 +56,8 @@ class VelostatSensor(SensorBase):
         """ TODO """
         a = self.read_all_imu_data()
         return a
+
+if __name__ == '__main__':
+    a = VelostatSensor()
+    while True:
+        k = a.read_all_data(write_to_file=1)
