@@ -21,8 +21,3 @@ for k = 1 : numFiles
     hold on
     plot(fitpoints)
 end
-
-% hold on
-% plot(X(1),[X(1).^2 X(1) ones(1,1)]*[fit1.p1;fit1.p2;fit1.p3])
-% hold on
-% plot(fit1)

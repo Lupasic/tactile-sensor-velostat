@@ -1,5 +1,5 @@
 % should add out folder to matlab path
-fds = fileDatastore('exp_data/Experiment_*.txt', 'ReadFcn', @importdata);
+fds = fileDatastore('futek_data/experiment_*.txt', 'ReadFcn', @importdata);
 fullFileNames = fds.Files;
 % [pathstr, name, ext] = fileparts(fullFileNames{1})
 numFiles = length(fullFileNames);

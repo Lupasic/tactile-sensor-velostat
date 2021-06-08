@@ -13,7 +13,7 @@ import time
 class Futek(SensorBase):
     """ Main class """
 
-    def __init__(self, port='/dev/ttyACM0', baudrate=115200, debug=1, write_to_fl=1):
+    def __init__(self, port='/dev/ttyUSB0', baudrate=115200, debug=1, write_to_fl=1):
         """ Open serial port if needed.
         Args:
             debug - if true, other methods print information

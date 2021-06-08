@@ -8,7 +8,7 @@ import datetime
 class VelostatSensor(SensorBase):
     """ The class of our handmade sensor, which provide the interface for reading data from IMU and force sensors """
     time_stamp = False
-    def __init__(self, port='/dev/ttyUSB0', baudrate=115200, imu_bytes=0, force_bytes=8, debug = 1, write_to_fl=1):
+    def __init__(self, port='/dev/ttyUSB1', baudrate=115200, imu_bytes=0, force_bytes=8, debug = 1, write_to_fl=1):
         '''
         If some data is not exist (for instance we are not sending imu data), then imu_bytes should be equal to 0
 
