@@ -24,16 +24,16 @@ if nargin < 2
 end
 
 %% Set up the Import Options and import the data
-opts = delimitedTextImportOptions("NumVariables", 5);
+opts = delimitedTextImportOptions("NumVariables", 2);
 
 % Specify range and delimiter
 opts.DataLines = dataLines;
 opts.Delimiter = " ";
 
 % Specify column names and types
-opts.VariableNames = ["VarName1", "Var2", "Var3", "Var4", "VarName5"];
+opts.VariableNames = ["VarName1", "VarName5"];
 opts.SelectedVariableNames = ["VarName1", "VarName5"];
-opts.VariableTypes = ["double", "string", "string", "string", "double"];
+opts.VariableTypes = ["double", "double"];
 
 % Specify file level properties
 opts.ExtraColumnsRule = "ignore";
@@ -42,8 +42,6 @@ opts.ConsecutiveDelimitersRule = "join";
 opts.LeadingDelimitersRule = "ignore";
 
 % Specify variable properties
-opts = setvaropts(opts, ["Var2", "Var3", "Var4"], "WhitespaceRule", "preserve");
-opts = setvaropts(opts, ["Var2", "Var3", "Var4"], "EmptyFieldRule", "auto");
 
 % Import the data
 output_data = readtable(filename, opts);

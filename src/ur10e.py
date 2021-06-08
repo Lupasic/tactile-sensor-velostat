@@ -21,8 +21,8 @@ class UR10:
         self.rob = urx.Robot(address, use_rt=False)
         if enable_force:
             self.futek = Futek(debug=1)
-        self._acc = 0.1
-        self._vec = 0.06
+        self._acc = 0.15
+        self._vec = 0.1
         # todo
         self._common_orient=[3.14,0.1,0]
     
@@ -61,7 +61,7 @@ class UR10:
         self.rob.movel([-dx,-dy,0,0,0,0], acc=self._acc, vel=self._vec, wait=wait, relative=True, threshold=None)
 
     def point_load(self, sleep_time=0, needed_force=98, vel=0.01):
-        self.touch_ground(needed_force=needed_force, vel=0.01)
+        self.touch_ground(needed_force=needed_force, vel=vel)
         time.sleep(sleep_time)
         self.futek.readData(write_to_file=1,msg="go_up_point")
     
@@ -90,7 +90,6 @@ class UR10:
             eps=1
             wp=1
 
-        init_pose[2]=init_pose[2]+updz
         self.rob.movel(init_pose, acc=self._acc, vel=self._vec, wait=True, relative=False, threshold=None)
         if self.enable_force:
             self.futek.readData(write_to_file=1,msg="start_exp")
@@ -107,7 +106,6 @@ class UR10:
             for cur_poss in cur_points:
                 self.rob.movel(cur_poss, acc=self._acc, vel=self._vec, wait=True, relative=False, threshold=None)
                 self.point_load(sleep_time=sleep_time,needed_force=needed_force, vel=touch_ground_vel)
-                # self.rolling_load(0.1,0)
 
         
     def test_flat_sensor_rolling_load(self, init_pose, l, w, lp=0, wp=0, repeats=2, needed_force=98,updz=0.01, touch_ground_vel=0.01):
@@ -127,7 +125,6 @@ class UR10:
             eps=1
             wp=1
         
-        init_pose[2]=init_pose[2]+updz
         self.rob.movel(init_pose, acc=self._acc, vel=self._vec, wait=True, relative=False, threshold=None)
         if self.enable_force:
             self.futek.readData(write_to_file=1,msg="start_exp")
@@ -150,7 +147,7 @@ class UR10:
         time.sleep(timeout)
             
 
-def basic_start(ur10):
+def basic_start(ur10, updz = 0.008):
     starting_pos = [-0.6284734457983073, 0.04110124901844167, 0.24322792682955954, 2.885542842994124, -0.09630215284222861, -0.8197553730344054]
     print("start freedrive")
     ur10.freedrive_transient(15)
@@ -158,19 +155,20 @@ def basic_start(ur10):
     sensor_init_pose = ur10.rob.getl()
     print(sensor_init_pose)
     sensor_init_pose = sensor_init_pose[:3] + ur10._common_orient
+    sensor_init_pose[2]=sensor_init_pose[2]+updz
     print(sensor_init_pose)
     ur10.rob.movel(starting_pos,ur10._acc,ur10._vec,wait=True)
     return sensor_init_pose, starting_pos
 
 def exp_point_load(ur10, forces, lp, wp, touch_ground_vel=0.01):
-    sensor_init_pose, starting_pos = basic_start(ur10)
+    sensor_init_pose, starting_pos = basic_start(ur10,updz=0.006)
     for cur_force in forces:
         ur10.test_flat_sensor_point_load(sensor_init_pose,sensor_l,sensor_w,lp,wp,0,3,needed_force=ur10.futek.F2raw(cur_force), touch_ground_vel=touch_ground_vel)
-        ur10.rob.movel(starting_pos,ur10._acc,ur10._vec,wait=True)
+        ur10.rob.movel(starting_pos,ur10._acc,ur10._vec,wait=True, relative=False)
     ur10.futek.close()
 
-def exp_point_load3exp(ur10, forces, lp, wp, touch_ground_vel=0.01):
-    sensor_init_pose, starting_pos = basic_start(ur10)
+def exp_point_load3exp(ur10, forces, lp, wp, touch_ground_vel=0.001):
+    sensor_init_pose, starting_pos = basic_start(ur10,updz=0.0052)
     for cur_force in forces:
         ur10.test_flat_sensor_point_load(sensor_init_pose,sensor_l,sensor_w,lp,wp,0,1,needed_force=ur10.futek.F2raw(cur_force), touch_ground_vel=touch_ground_vel)
         ur10.rob.movel(starting_pos,ur10._acc,ur10._vec,wait=True)
@@ -203,7 +201,17 @@ if __name__ == '__main__':
     ur10 = UR10(enable_force=1)
     print(ur10.rob)
     # EXP 1
-    exp_point_load(ur10,[10, 25, 50],0,0, touch_ground_vel=0.1)
+    # exp_point_load(ur10,[20, 40, 60],0,0, touch_ground_vel=0.001)
+
+    # EXP 2
+    # exp_point_load(ur10,[10,20,30,40,50,60,70,80],0,0, touch_ground_vel=0.001)
+
+    # EXP 3
+    # exp_point_load3exp(ur10,[20],4,4)
+    # exp_point_load3exp(ur10,[pressure*S_big_spike],4,4)
+
+    # EXP 4
+    exp_multi_rolling(ur10,10,40)
     
     #EXP 2
     S_small_spike = pi*0.0027**2/4
@@ -215,7 +223,6 @@ if __name__ == '__main__':
     # EXP 3
     # exp_point_load3exp(ur10,[pressure*S_small_spike],4,4)
     # exp_point_load3exp(ur10,[pressure*S_big_spike],4,4)
-    # EXP 4
-    # exp_multi_rolling(ur10,10,40)
+    
     
 
