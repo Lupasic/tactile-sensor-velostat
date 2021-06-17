@@ -201,7 +201,7 @@ if __name__ == '__main__':
     ur10 = UR10(enable_force=1)
     print(ur10.rob)
     # EXP 1
-    # exp_point_load(ur10,[20, 40, 60],0,0, touch_ground_vel=0.001)
+    exp_point_load(ur10,[20, 40, 60],0,0, touch_ground_vel=0.001)
 
     # EXP 2
     # exp_point_load(ur10,[10,20,30,40,50,60,70,80],0,0, touch_ground_vel=0.001)
@@ -211,7 +211,7 @@ if __name__ == '__main__':
     # exp_point_load3exp(ur10,[pressure*S_big_spike],4,4)
 
     # EXP 4
-    exp_multi_rolling(ur10,10,40)
+    # exp_multi_rolling(ur10,10,40)
     
     #EXP 2
     S_small_spike = pi*0.0027**2/4

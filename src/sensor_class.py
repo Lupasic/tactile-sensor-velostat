@@ -10,7 +10,7 @@ import datetime
 class SensorBase:
     """ Basic class """
     filename_time_stamp = False
-    def __init__(self, port, baudrate, debug = 1, write_to_fl=1, folder_name=""):
+    def __init__(self, port, baudrate, debug = 1, write_to_fl=1, folder_name="",file_name=None):
         """ Open serial port if needed.
         Args:
             debug - if true, other methods print information
@@ -25,11 +25,14 @@ class SensorBase:
             print ("error open serial port")
             exit()
         if write_to_fl:
-            self.open_file(folder_name)
+            self.open_file(folder_name,file_name)
 
 
-    def open_file(self, folder_name):
-        temp_name = input("input pure file name: ")
+    def open_file(self, folder_name,file_name):
+        if file_name is not None:
+            temp_name = file_name
+        else:
+            temp_name = input("input pure file name: ")
         if self.filename_time_stamp:
             pure_file_name = temp_name + "_" + datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
         else:
