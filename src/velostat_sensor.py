@@ -24,13 +24,14 @@ class VelostatSensor(SensorBase):
     
     def read_all_data(self, write_to_file=0,msg=""):
         """ Docstring """
+        self.ser.write(b"\n")
         full_array = []
         data = self.ser.read(self.imu_bytes + self.force_bytes)
         self.cur_timestamp = datetime.datetime.now().timestamp()
         for b in struct.iter_unpack('<f', data[:self.imu_bytes]):
             full_array.append(b[0])
         for d in struct.iter_unpack('<f',data[self.imu_bytes:]):
-            full_array.append(d[0])
+            full_array.append(self.raw2F(d[0]))
         if self._debug:
             print(full_array)
         if write_to_file:
@@ -57,44 +58,28 @@ class VelostatSensor(SensorBase):
         """ TODO """
         a = self.read_all_imu_data()
         return a
+                
+    def raw2F(self, raw_data):
+        """ Linear model Poly1:
+        fitpoints(x) = p1*x + p2
+        Coefficients (with 95% confidence bounds):
+        p1 =     0.03099  (0.03079, 0.03119)
+        p2 =    0.002797  (-0.01346, 0.01906)
+        """
+        p1 = 2
+        p2 = 0.002
+        g = 9.8 
+        F = round(g* (p1*raw_data + p2),2)
+        return F
 
-def velostat_calibration(exp_time=15):
-    masses = [0, 0.06, 0.12,0.11,0.16,0.210,0.232,0.264, 0.290,0.325,0.370, 0.432, 0.477, 0.530, 0.590, 0, 0.652, 0.867,
-    0.926,0.974, 1.032,1.157]
-    message = ["0",
-    "glue",
-    "glue + rope",
-    "metal crap",
-    "crap + glue",
-    "battery grey",
-    "battery gray + printed",
-    "battery black",
-    "battery blue",
-    "brick + glue",
-    "brick + crap",
-    "brick + crap + glue",
-    "brick + gray battery",
-    "brick + brick",
-    "brick + brick + glue",
-    "0",
-    "brick + brick + glue + rope",
-    "battery pack",
-    "battery pack + glue",
-    "battery pack + crap",
-    "battery pack + crap + glue",
-    "battery pack + blue battery"] 
+    def F2raw(self, F):
+        p1 = 0.031
+        p2 = 0.002
+        g = 9.8
+        return round((F/g - p2)/p1,2)
 
-    for i in range(len(message)):
-        a = VelostatSensor(file_name=str(i),folder_name="velostat_data_for_calibration")
-        print("Put on sensor "+ message[i])
-        input()
-        t0= time.time()
-        while time.time() - t0 <= exp_time:
-            k = a.read_all_data(write_to_file=1,msg=str(masses[i]))
-        a.close()
 
 if __name__ == '__main__':
-    velostat_calibration()
-    # a = VelostatSensor()
-    # while True:
-    #     k = a.read_all_data(write_to_file=1)
+    a = VelostatSensor()
+    while True:
+        k = a.read_all_data(write_to_file=1)
