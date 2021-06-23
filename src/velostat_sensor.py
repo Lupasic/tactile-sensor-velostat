@@ -9,7 +9,7 @@ import time
 class VelostatSensor(SensorBase):
     """ The class of our handmade sensor, which provide the interface for reading data from IMU and force sensors """
     time_stamp = False
-    def __init__(self, port='/dev/ttyUSB1', baudrate=115200, imu_bytes=0, force_bytes=4, debug = 1, write_to_fl=1,file_name=None,folder_name="velostat_data"):
+    def __init__(self, port='/dev/ttyUSB1', baudrate=115200, imu_bytes=0, force_bytes=4, debug = 1, write_to_fl=1,file_name=None,folder_name="velostat_data",calib_coeff=None):
         '''
         If some data is not exist (for instance we are not sending imu data), then imu_bytes should be equal to 0
 
@@ -60,17 +60,20 @@ class VelostatSensor(SensorBase):
         return a
                 
     def raw2F(self, raw_data):
-        """ Linear model Poly1:
-        fitpoints(x) = p1*x + p2
-        Coefficients (with 95% confidence bounds):
-        p1 =     0.03099  (0.03079, 0.03119)
-        p2 =    0.002797  (-0.01346, 0.01906)
-        """
-        p1 = 2
-        p2 = 0.002
-        g = 9.8 
-        F = round(g* (p1*raw_data + p2),2)
-        return F
+        if self.calib_coeff == None:
+            return raw_data
+        else:
+            """ Linear model Poly1:
+            fitpoints(x) = p1*x + p2
+            Coefficients (with 95% confidence bounds):
+            p1 =     0.03099  (0.03079, 0.03119)
+            p2 =    0.002797  (-0.01346, 0.01906)
+            """
+            p1 = 2
+            p2 = 0.002
+            g = 9.8 
+            F = round(g* (p1*raw_data + p2),2)
+            return F
 
     def F2raw(self, F):
         p1 = 0.031
