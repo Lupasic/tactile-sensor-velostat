@@ -201,7 +201,7 @@ if __name__ == '__main__':
     ur10 = UR10(enable_force=1)
     print(ur10.rob)
     # EXP 1
-    exp_point_load(ur10,[20, 40, 60],0,0, touch_ground_vel=0.001)
+    exp_point_load(ur10,[1, 5, 10],0,0, touch_ground_vel=0.0005)
 
     # EXP 2
     # exp_point_load(ur10,[10,20,30,40,50,60,70,80],0,0, touch_ground_vel=0.001)
