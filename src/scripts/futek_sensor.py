@@ -10,15 +10,15 @@ import datetime
 import time
 
 
-class Futek(SensorBase):
+class FutekSensor(SensorBase):
     """ Main class """
 
-    def __init__(self, port='/dev/ttyUSB0', baudrate=115200, debug=1, write_to_fl=1,file_name=None):
+    def __init__(self, port='/dev/ttyUSB0', baudrate=115200, debug=0, write_to_fl=1,file_name=None, folder_name="futek_data"):
         """ Open serial port if needed.
         Args:
             debug - if true, other methods print information
          """
-        super().__init__(port, baudrate, debug, write_to_fl, folder_name="futek_data",file_name=file_name)
+        super().__init__(port, baudrate, debug, write_to_fl, folder_name=folder_name,file_name=file_name)
         self.port = port
         self._debug = debug
         # Inisialisation (empirical)
@@ -65,9 +65,6 @@ class Futek(SensorBase):
 
 
 if __name__ == '__main__':
-    a = Futek()
+    a = FutekSensor()
     while True:
         k = a.readData(write_to_file=1)
-    # while True:
-    #     if a.readData()>=100:
-    #         a.readData(write_to_file=1,msg="kek")

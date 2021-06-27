@@ -3,7 +3,7 @@
 import urx
 import time
 from math import pi
-from futek import Futek
+from futek_sensor import FutekSensor
 import numpy as np
 
 # https://github.com/LukeSkypewalker/URX-jupiter-notebook/blob/master/URX_notebook.ipynb
@@ -20,7 +20,7 @@ class UR10:
         self.enable_force = enable_force
         self.rob = urx.Robot(address, use_rt=False)
         if enable_force:
-            self.futek = Futek(debug=1)
+            self.futek = FutekSensor(debug=1)
         self._acc = 0.15
         self._vec = 0.1
         # todo

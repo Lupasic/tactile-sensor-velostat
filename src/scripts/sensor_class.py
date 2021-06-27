@@ -2,9 +2,9 @@
 
 """ This code contains a basic sensor class """
 
-import struct
 from serial import Serial, SerialException
 import datetime
+from pathlib import Path
 
 
 class SensorBase:
@@ -14,6 +14,7 @@ class SensorBase:
         """ Open serial port if needed.
         Args:
             debug - if true, other methods print information
+            folder_name - inside experimental_data folder
          """
         self.port = port
         self._debug = debug
@@ -37,7 +38,9 @@ class SensorBase:
             pure_file_name = temp_name + "_" + datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S')
         else:
             pure_file_name = temp_name
-        self.file_name = folder_name + "/experiment_" + pure_file_name + ".txt"
+        temp = "../experimental_data/" + folder_name
+        Path(temp).mkdir(parents=True,exist_ok=True)
+        self.file_name = temp + "/exp_" + pure_file_name + ".txt"
         print("name is " + self.file_name)
         self.text_file = open(self.file_name,"w")
 
@@ -54,8 +57,7 @@ class SensorBase:
         else:
             msg = " " + msg
         if self.text_file is not None:
-            if self._debug:
-                print(string_data + str(self.cur_timestamp) + msg)
+            print(string_data + str(self.cur_timestamp) + msg)
             self.text_file.write(string_data + str(self.cur_timestamp)+ msg + "\n")
         else:
             print("File is not exist, cannot write to file")
