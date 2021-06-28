@@ -15,12 +15,12 @@ sensor_l = 15
 sensor_w = 15
 
 class UR10:
-    def __init__(self, address="172.31.1.25", debug = 1, enable_force=True):
+    def __init__(self, address="172.31.1.25", debug = 1, enable_force=True,file_name=None, folder_name="futek_data"):
         self._debug = debug
         self.enable_force = enable_force
         self.rob = urx.Robot(address, use_rt=False)
         if enable_force:
-            self.futek = FutekSensor(debug=1)
+            self.futek = FutekSensor(debug=1,file_name=file_name, folder_name=folder_name)
         self._acc = 0.15
         self._vec = 0.1
         # todo
