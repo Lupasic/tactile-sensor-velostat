@@ -14,11 +14,12 @@ class TimeLimit:
     start: float
     stop: float
 
-sensor_names = ("old_1","old_2","new_1","new_3_triple")
+# sensor_names = ["old_1","old_2","new_1","new_3_triple", "double"]
+sensor_names = ["double"]
 
 def question_1():
     #  Correlation between mass and velostat data
-    experiments = {"e_sm":"empty->0.064(glue)",
+    experiments = {"e_sm":"empty->0.058(glue)",
                     "e_md":"empty->0.325(xx)",
                     "e_bg":"empty->0.652(xx)",
                    "m_p_sm":"mass->+0.060(glue)",
@@ -29,17 +30,17 @@ def question_1():
     time_limit = 120
 
     for cur_sensor in sensor_names:
-        print("Make the experiment with " + cur_sensor + "sensor. \n Press enter if ready")
+        print("Make the experiment with " + cur_sensor + " sensor. \n Press enter if ready")
         input()
         for cur_exp_key, cur_exp_val in experiments.items():
-            print("Your experiment is " + cur_exp_val + ". \n Press enter if ready")
+            print("Your experiment is " + str(cur_exp_val) + ". \n Press enter if ready")
             input()
             for cur_attempt in range(attempts):
-                print("Now is a " + cur_attempt + "Attempt. \n Press enter if ready")
+                print("Now is a " + str(cur_attempt) + " attempt. \n Press enter if ready")
                 input()
                 fl = False
                 while fl == False:
-                    a = VelostatSensor(file_name=cur_exp_key+"_"+str(cur_attempt),folder_name="question_1/"+cur_sensor+"/"+ cur_exp_key +"/attempt_"+str(cur_attempt))
+                    a = VelostatSensor(file_name=str(cur_exp_key)+"_"+str(cur_attempt),folder_name="question_1/"+cur_sensor+"/"+ cur_exp_key +"/attempt_"+str(cur_attempt))
                     t0= time.time()
                     while time.time() - t0 <= time_limit:
                         k = a.read_all_data(write_to_file=1,msg=cur_exp_key)
@@ -76,21 +77,21 @@ def question_3():
     time_limits = [TimeLimit(0,3),TimeLimit(10,10)]
     attempts = 3
     for time_limit in time_limits:
-        print("On these experiments you should put after start on " + time_limit + "second. \n Press enter if ready")
+        print("On these experiments you should put after start on " + str(time_limit.stop) + "second. \n Press enter if ready")
         input()
         for cur_sensor in sensor_names:
-            print("Make the experiment with " + cur_sensor + "sensor. \n Press enter if ready")
+            print("Make the experiment with " + cur_sensor + " sensor. \n Press enter if ready")
             input()
             for cur_exp_key, cur_exp_val in experiments.items():
-                print("Your experiment is to put this" + cur_exp_val + " on sensor. \n Press enter if ready")
+                print("Your experiment is to put " + cur_exp_val + " on sensor. \n Press enter if ready")
                 input()
                 for cur_attempt in range(attempts):
-                    print("Now is a " + cur_attempt + "Attempt. \n Press enter if ready")
+                    print("Now is a " + str(cur_attempt) + " attempt. \n Press enter if ready")
                     input()
                     fl = False
                     while fl == False:
-                        a = VelostatSensor(file_name=cur_exp_key+"_"+str(cur_attempt),
-                        folder_name="question_3_"+time_limit.stop+"s/"+cur_sensor+"/mass_"+ str(cur_exp_key) +"/attempt_"+str(cur_attempt))
+                        a = VelostatSensor(file_name=str(cur_exp_key)+"_"+str(cur_attempt),
+                        folder_name="question_3_"+str(time_limit.stop)+"s/"+cur_sensor+"/mass_"+ str(cur_exp_key) +"/attempt_"+str(cur_attempt))
                         time.sleep(time_limit.start)
                         t0= time.time()
                         while time.time() - t0 <= time_limit.stop:
@@ -108,21 +109,24 @@ def read_vel_data(velostat):
         k = velostat.read_all_data(write_to_file=1)
 
 def make_sensor_load_map(ur10, sensor_init_pose, starting_pos, cur_force, lp, wp, touch_ground_vel=0.001):
-    ur10.test_flat_sensor_point_load(sensor_init_pose,15,15,lp,wp,0,1,needed_force=ur10.futek.F2raw(cur_force), touch_ground_vel=touch_ground_vel)
+    # print("kek")
+    # ur10.forward(0.2,0)
+    ur10.test_flat_sensor_point_load(sensor_init_pose,14,14,lp,wp,0,1,needed_force=ur10.futek.F2raw(cur_force), touch_ground_vel=touch_ground_vel)
     ur10.rob.movel(starting_pos,ur10._acc,ur10._vec,wait=True)
     ur10.futek.close()
-    q.put("kek") 
+    # q.put("kek") 
 
 
+# rolling - 94 gramm 
 def question_4():
-    experiments = {"3_p":"smallest (3mm) pike",
-                    "6_p":"small (6mm) pike",
-                    "9_p":"medium (9mm) pike",
-                   "12_p":"big (12mm) pike",
-                   "15_p":"biggest (15mm) pike"}
+    experiments = {"3_p":"smallest (3mm) pike 4",
+                    "6_p":"small (6mm) pike 5",
+                    "9_p":"medium (9mm) pike 6",
+                   "12_p":"big (12mm) pike 6",
+                   "15_p":"biggest (15mm) pike 9"}
     attempts = 3
     for cur_sensor in sensor_names:
-        print("Make the experiment with " + cur_sensor + "sensor. \n Press enter if ready")
+        print("Make the experiment with " + cur_sensor + " sensor. \n Press enter if ready")
         print("took the smallest pike and after enter navigate manipulator in top left corner of sensor")
         input()
         fl_base = False
@@ -140,24 +144,33 @@ def question_4():
             print("Your experiment is install " + cur_exp_val + " end-effector. \n Press enter if ready")
             input()
             for cur_attempt in range(attempts):
-                print("Now is a " + cur_attempt + "Attempt. \n Press enter if ready")
+                print("Now is a " + str(cur_attempt) + " attempt. \n Press enter if ready")
                 input()
                 fl = False
                 while fl == False:
                     q = multiprocessing.Queue()
-                    cur_ur10 = UR10(enable_force=1,
-                    file_name="futek_"+ cur_exp_key+"_"+str(cur_attempt),
+                    cur_vel = VelostatSensor(file_name=str(cur_exp_key)+"_"+str(cur_attempt),
                     folder_name="question_4/"+cur_sensor+"/"+ cur_exp_key +"/attempt_"+str(cur_attempt))
-                    cur_vel = VelostatSensor(file_name=cur_exp_key+"_"+str(cur_attempt),
-                    folder_name="question_4/"+cur_sensor+"/"+ cur_exp_key +"/attempt_"+str(cur_attempt))
-                    p1 = multiprocessing.Process(target=make_sensor_load_map,
-                    args=(cur_ur10, sensor_init_pose, starting_pos, 3, 4, 4,)) 
+                    # p1 = multiprocessing.Process(target=make_sensor_load_map,
+                    # args=(cur_ur10, sensor_init_pose, starting_pos, 3, 4, 4,)) 
                     p2 = multiprocessing.Process(target=read_vel_data, args=(cur_vel,))
-                    p1.start() 
+                    while True:
+                        try:
+                            cur_ur10 = UR10(enable_force=1,
+                    file_name="futek_"+ str(cur_exp_key)+"_"+str(cur_attempt),
+                    folder_name="question_4/"+cur_sensor+"/"+ cur_exp_key +"/attempt_"+str(cur_attempt))
+                            print(cur_ur10.rob)
+                            break
+                        except Exception:
+                            print("Plug out ethernet cable and plug in again")
+                    # p1.start() 
                     p2.start()
-                    while q.qsize() > 0:
-                        pass
-                    p1.terminate()
+                    print("start")
+                    make_sensor_load_map(cur_ur10, sensor_init_pose, starting_pos, 3, 4, 4)
+                    
+                    # while q.qsize() == 0:
+                    #     pass
+                    # p1.terminate()
                     p2.terminate()
                     q = None                    
                     print("Do you want to continue an experiment, if yes - enter, no - write smth")
@@ -173,15 +186,15 @@ def question_5():
     time_limit = TimeLimit(12,10)
 
     for cur_sensor in sensor_names + ["futek"]:
-        print("Make the experiment with " + cur_sensor + "sensor. \n Press enter if ready")
+        print("Make the experiment with " + cur_sensor + " sensor. \n Press enter if ready")
         input()
         for cur_attempt in range(attempts):
-            print("Now is a " + cur_attempt + "Attempt. \n Press enter if ready")
+            print("Now is a " + str(cur_attempt) + " attempt. \n Press enter if ready")
             input()
             fl = False
             while fl == False:
-                if cur_sensor is not "futek":
-                    a = VelostatSensor(file_name="autocorr"+str(cur_attempt),
+                if cur_sensor != "futek":
+                    a = VelostatSensor(file_name="autocorr_"+str(cur_attempt),
                     folder_name="question_5/"+cur_sensor+"/autocorr/attempt_"+str(cur_attempt))
                 else:
                     a = FutekSensor(file_name="autocorr"+str(cur_attempt),
@@ -202,8 +215,8 @@ def question_5():
 
 
 if __name__ == '__main__':
-    question_1()
-    question_3()
-    question_5()
-    question_2()
+    # question_1()
+    # question_3()
+    # question_5()
+    # question_2()
     question_4()

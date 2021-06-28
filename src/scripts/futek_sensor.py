@@ -51,15 +51,15 @@ class FutekSensor(SensorBase):
         p1 =     0.03099  (0.03079, 0.03119)
         p2 =    0.002797  (-0.01346, 0.01906)
         """
-        p1 = 0.031
-        p2 = 0.002
+        p1 = 0.005443
+        p2 = -0.03657
         g = 9.8 
         F = round(g* (p1*raw_data + p2),2)
         return F
 
     def F2raw(self, F):
-        p1 = 0.031
-        p2 = 0.002
+        p1 = 0.005443
+        p2 = -0.03657
         g = 9.8
         return round((F/g - p2)/p1,2)
 

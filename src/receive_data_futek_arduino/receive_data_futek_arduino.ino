@@ -17,7 +17,7 @@
 
   http://www.arduino.cc/en/Tutorial/SerialEvent
 */
-const int analogInPin = A0; 
+const int analogInPin = A1; 
 int val_filter, temp_data;
 String inputString = "";         // a String to hold incoming data
 bool stringComplete = false;  // whether the string is complete
