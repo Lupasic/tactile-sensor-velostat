@@ -57,8 +57,12 @@ class UR10:
     def arc(self):
         pass
 
-    def forward(self, dx, dy, wait=True):
-        self.rob.movel([-dx,-dy,0,0,0,0], acc=self._acc, vel=self._vec, wait=wait, relative=True, threshold=None)
+    def forward(self, dx, dy, wait=True, vel = None):
+        if vel == None:
+            cur_vel = self._vec
+        else:
+            cur_vel = vel
+        self.rob.movel([-dx,-dy,0,0,0,0], acc=self._acc, vel=cur_vel, wait=wait, relative=True, threshold=None)
 
     def point_load(self, sleep_time=0, needed_force=98, vel=0.01):
         self.touch_ground(needed_force=needed_force, vel=vel)
@@ -71,7 +75,7 @@ class UR10:
         dy = dy/1000
 
         self.touch_ground(needed_force=needed_force, vel=vel)
-        self.forward(dx,dy)
+        self.forward(dx,dy,vel=vel)
         self.futek.readData(write_to_file=1,msg="go_up_roll")
 
     def test_flat_sensor_point_load(self, init_pose, l, w, lp, wp, sleep_time, repeats=3, needed_force=98,updz=0.01, touch_ground_vel=0.01):
