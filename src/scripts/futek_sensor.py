@@ -47,24 +47,26 @@ class FutekSensor(SensorBase):
     def raw2F(self, raw_data):
         """ Linear model Poly1:
         fitpoints(x) = p1*x + p2
-        Coefficients (with 95% confidence bounds):
-        p1 =     0.03099  (0.03079, 0.03119)
-        p2 =    0.002797  (-0.01346, 0.01906)
+     Coefficients (with 95% confidence bounds):
+       p1 =    0.006321  (0.006239, 0.006403)
+       p2 =     -0.1972  (-0.2043, -0.19)
         """
-        p1 = 0.005443
-        p2 = -0.03657
+        p1 = 0.006321
+        p2 = -0.1978
         g = 9.8 
         F = round(g* (p1*raw_data + p2),2)
         return F
 
     def F2raw(self, F):
-        p1 = 0.005443
-        p2 = -0.03657
+        p1 = 0.006321
+        p2 = -0.1972
         g = 9.8
         return round((F/g - p2)/p1,2)
 
 
 if __name__ == '__main__':
     a = FutekSensor()
+    futek = FutekSensor(port='/dev/ttyUSB2',file_name="futek_extra")
     while True:
         k = a.readData(write_to_file=1)
+        d = futek.readData(write_to_file=1)

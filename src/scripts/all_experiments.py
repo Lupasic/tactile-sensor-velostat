@@ -15,7 +15,7 @@ class TimeLimit:
     stop: float
 
 sensor_names = ["old_1","old_2","new_1","new_3_triple", "double"]
-# sensor_names = ["double"]
+# sensor_names = ["new_1","new_3_triple", "double"]
 
 def read_vel_data(velostat):
     while True:
@@ -62,7 +62,7 @@ def question_1():
     
 
 def test_sensor_on_multiroll(ur10, sensor_init_pose, starting_pos, cur_force, touch_ground_vel):
-    ur10.test_flat_sensor_rolling_load(sensor_init_pose, 30,14,0,1,20,needed_force=ur10.futek.F2raw(cur_force), touch_ground_vel=touch_ground_vel)
+    ur10.test_flat_sensor_rolling_load(sensor_init_pose, 30,14,0,1,10,needed_force=ur10.futek.F2raw(cur_force), touch_ground_vel=touch_ground_vel)
     ur10.rob.movel(starting_pos,ur10._acc,ur10._vec,wait=True)
     ur10.futek.close()
 
@@ -100,16 +100,16 @@ def question_2():
                 fl = False
                 while fl == False:
                     extra_futek = FutekSensor(port='/dev/ttyUSB2',file_name="futek_extra_"+ str(cur_exp_key)+"_"+str(cur_attempt),
-                    folder_name="question_2/"+cur_sensor+"/speed_"+ str(cur_exp_key) +"/attempt_"+str(cur_attempt))
+                    folder_name="question_2_/"+cur_sensor+"/speed_"+ str(cur_exp_key) +"/attempt_"+str(cur_attempt))
                     cur_vel = VelostatSensor(file_name=str(cur_exp_key)+"_"+str(cur_attempt),
-                    folder_name="question_2/"+cur_sensor+"/speed_"+ str(cur_exp_key) +"/attempt_"+str(cur_attempt))
+                    folder_name="question_2_/"+cur_sensor+"/speed_"+ str(cur_exp_key) +"/attempt_"+str(cur_attempt))
                     p1 = multiprocessing.Process(target=read_futek_data, args=(extra_futek,))
                     p2 = multiprocessing.Process(target=read_vel_data, args=(cur_vel,))
                     while True:
                         try:
                             cur_ur10 = UR10(enable_force=1,
                     file_name="futek_"+ str(cur_exp_key)+"_"+str(cur_attempt),
-                    folder_name="question_2/"+cur_sensor+"/speed_"+ str(cur_exp_key) +"/attempt_"+str(cur_attempt))
+                    folder_name="question_2_/"+cur_sensor+"/speed_"+ str(cur_exp_key) +"/attempt_"+str(cur_attempt))
                             print(cur_ur10.rob)
                             break
                         except Exception:
@@ -117,7 +117,7 @@ def question_2():
                     p1.start() 
                     p2.start()
                     print("start")
-                    test_sensor_on_multiroll(cur_ur10, sensor_init_pose, starting_pos, 3, cur_exp_key)
+                    test_sensor_on_multiroll(cur_ur10, sensor_init_pose, starting_pos, -1.5, cur_exp_key)
                     p1.terminate()
                     p2.terminate()                 
                     print("Do you want to continue an experiment, if yes - enter, no - write smth")
@@ -176,7 +176,7 @@ def question_3():
 
 
 
-def make_sensor_load_map(ur10, sensor_init_pose, starting_pos, cur_force, lp, wp, touch_ground_vel=0.01):
+def make_sensor_load_map(ur10, sensor_init_pose, starting_pos, cur_force, lp, wp, touch_ground_vel=0.005):
     ur10.test_flat_sensor_point_load(sensor_init_pose,14,14,lp,wp,0,1,needed_force=ur10.futek.F2raw(cur_force), touch_ground_vel=touch_ground_vel)
     ur10.rob.movel(starting_pos,ur10._acc,ur10._vec,wait=True)
     ur10.futek.close()
@@ -197,7 +197,12 @@ def question_4():
         input()
         fl_base = False
         while fl_base == False:
-            temp_ur10 = UR10(enable_force=0)
+            while True:
+                try:
+                    temp_ur10 = UR10(enable_force=0)
+                    break
+                except Exception:
+                    print("Plug out ethernet cable and plug in again")
             sensor_init_pose, starting_pos = ur10e.basic_start(temp_ur10,updz=0.006)
             temp_ur10 = None
             print("Are you sure that base is correct?, if yes - enter, no - write smth")
@@ -280,5 +285,5 @@ if __name__ == '__main__':
     # question_1()
     # question_3()
     # question_5()
-    # question_2()
-    question_4()
+    question_2()
+    # question_4()
