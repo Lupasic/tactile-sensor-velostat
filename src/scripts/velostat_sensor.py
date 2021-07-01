@@ -24,7 +24,7 @@ class VelostatSensor(SensorBase):
         self.force_bytes = force_bytes
 
     
-    def read_all_data(self, write_to_file=0,msg=""):
+    def readData(self, write_to_file=0,msg=""):
         """ Docstring """
         self.ser.write(b"\n")
         full_array = []
@@ -45,23 +45,23 @@ class VelostatSensor(SensorBase):
             self.write_data_to_file(full_array,msg=msg)
         return full_array
 
-    def read_force_data(self, write_to_file=0):
+    def readForceData(self, write_to_file=0):
         """ Docstring """
-        temp = self.read_all_data()[self.imu_bytes/4:]
+        temp = self.readData()[self.imu_bytes/4:]
         if self._debug:
             print(temp)
         # self.imu_bytes/4 because of float data (4 bytes)
         return temp
 
-    def read_all_imu_data(self, write_to_file=0):
+    def readAllImuData(self, write_to_file=0):
         """ Docstring """
-        temp = self.read_all_data()[:self.imu_bytes/4]
+        temp = self.readData()[:self.imu_bytes/4]
         if self._debug:
             print(temp)
         # self.imu_bytes/4 because of float data (4 bytes)
         return temp
 
-    def read_quart(self, write_to_file=0):
+    def readQuart(self, write_to_file=0):
         """ TODO """
         a = self.read_all_imu_data()
         return a
@@ -96,4 +96,4 @@ if __name__ == '__main__':
 #  new 1 [[0.3014, -0.008011, 1.648, -0.2337]]
     # a = VelostatSensor(calib_coeff=[[0.432, -0.03483, 1.742, -0.2784]])
     while True:
-        k = a.read_all_data(write_to_file=1)
+        k = a.readData(write_to_file=1)

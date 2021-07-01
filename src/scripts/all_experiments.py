@@ -17,22 +17,28 @@ class TimeLimit:
 sensor_names = ["old_1","old_2","new_1","new_3_triple", "double"]
 # sensor_names = ["new_1","new_3_triple", "double"]
 
-def read_vel_data(velostat):
+q = multiprocessing.Queue()
+
+def read_vel_data(velostat,child_conn = None):
     while True:
-        k = velostat.read_all_data(write_to_file=1)
-def read_futek_data(futek):
+        k = velostat.readData(write_to_file=1)
+        if child_conn != None:
+            child_conn.send(k)
+def read_futek_data(futek,child_conn = None):
     while True:
         k = futek.readData(write_to_file=1)
+        if child_conn != None:
+            child_conn.send(k)
 
 
 def question_1():
     #  Correlation between mass and velostat data
-    experiments = {"e_sm":"empty->0.058(glue)",
-                    "e_md":"empty->0.325(xx)",
-                    "e_bg":"empty->0.652(xx)",
-                   "m_p_sm":"mass->+0.060(glue)",
-                   "m_p_md":"mass->+0.150(xx)",
-                   "m_p_bg":"mass->+0.300(xx)"}
+    experiments = {"e_sm":"empty->0.050(red button)",
+                    "e_md":"empty->0.267(brick)",
+                    "e_bg":"empty->0.64(2 bricks + crap)",
+                   "m_p_sm":"mass (brick)->+0.050(red button)",
+                   "m_p_md":"mass->+0.150(crap medium + button)",
+                   "m_p_bg":"mass->+0.268(brick)"}
     attempts = 3
     # time limit in seconds
     time_limit = 120
@@ -51,7 +57,7 @@ def question_1():
                     a = VelostatSensor(file_name=str(cur_exp_key)+"_"+str(cur_attempt),folder_name="question_1/"+cur_sensor+"/"+ cur_exp_key +"/attempt_"+str(cur_attempt))
                     t0= time.time()
                     while time.time() - t0 <= time_limit:
-                        k = a.read_all_data(write_to_file=1,msg=cur_exp_key)
+                        k = a.readData(write_to_file=1,msg=cur_exp_key)
                     a.close()
                     print("Do you want to continue an experiment, if yes - enter, no - write smth")
                     temp = input()
@@ -100,16 +106,16 @@ def question_2():
                 fl = False
                 while fl == False:
                     extra_futek = FutekSensor(port='/dev/ttyUSB2',file_name="futek_extra_"+ str(cur_exp_key)+"_"+str(cur_attempt),
-                    folder_name="question_2_/"+cur_sensor+"/speed_"+ str(cur_exp_key) +"/attempt_"+str(cur_attempt))
+                    folder_name="question_2/"+cur_sensor+"/speed_"+ str(cur_exp_key) +"/attempt_"+str(cur_attempt))
                     cur_vel = VelostatSensor(file_name=str(cur_exp_key)+"_"+str(cur_attempt),
-                    folder_name="question_2_/"+cur_sensor+"/speed_"+ str(cur_exp_key) +"/attempt_"+str(cur_attempt))
+                    folder_name="question_2/"+cur_sensor+"/speed_"+ str(cur_exp_key) +"/attempt_"+str(cur_attempt))
                     p1 = multiprocessing.Process(target=read_futek_data, args=(extra_futek,))
                     p2 = multiprocessing.Process(target=read_vel_data, args=(cur_vel,))
                     while True:
                         try:
                             cur_ur10 = UR10(enable_force=1,
                     file_name="futek_"+ str(cur_exp_key)+"_"+str(cur_attempt),
-                    folder_name="question_2_/"+cur_sensor+"/speed_"+ str(cur_exp_key) +"/attempt_"+str(cur_attempt))
+                    folder_name="question_2/"+cur_sensor+"/speed_"+ str(cur_exp_key) +"/attempt_"+str(cur_attempt))
                             print(cur_ur10.rob)
                             break
                         except Exception:
@@ -129,21 +135,22 @@ def question_2():
 
 def question_3():
     experiments = {0:"0",
-                    0.06: "glue",
-                    0.12: "glue + rope",
-                    0.11: "metal crap",
-                    0.16: "crap + glue",
-                    0.21: "battery grey",
-                    0.232: "battery grey + printed",
-                    0.264: "battery black",
-                    0.29: "battery blue",
-                    0.325: "brick + glue",
-                    0.370: "brick + crap",
-                    0.432 :"brick + crap + glue",
-                    0.477 :"brick + gray battery",
+                    0.05: "button",
+                    0.086: "button + crap small",
+                    0.11: "crap big",
+                    0.144: "crap small + crap big",
+                    0.168: "crap small + crap big + motor",
+                    0.207: "crap medium + crap big",
+                    0.255: "crap medium + crap big + button",
+                    0.301: "brick + crap small",
+                    0.350: "brick + crap small + button",
+                    0.404 :"brick + crap small + crap medium",
+                    0.450 :"brick + crap small + crap medium + button",
                     0.530 :"brick + brick",
-                    0.590 :"brick + brick + glue",
-                    0.652 :"brick + brick + glue + rope"}
+                    0.580 :"brick + brick + button",
+                    0.640 :"brick + brick + crap big",
+                    0.674 :"brick + brick + crap small + crap big",
+                    0.738 :"brick + brick + crap medium + crap big"}
     time_limits = [TimeLimit(0,3),TimeLimit(10,10)]
     attempts = 3
     for time_limit in time_limits:
@@ -165,7 +172,7 @@ def question_3():
                         time.sleep(time_limit.start)
                         t0= time.time()
                         while time.time() - t0 <= time_limit.stop:
-                            k = a.read_all_data(write_to_file=1,msg=str(cur_exp_key))
+                            k = a.readData(write_to_file=1,msg=str(cur_exp_key))
                         a.close()
                         print("Do you want to continue an experiment, if yes - enter, no - write smth")
                         temp = input()
@@ -250,40 +257,118 @@ def question_4():
 def question_5():
     attempts = 3
     # time limit in seconds
-    time_limit = TimeLimit(12,10)
+    time_limits = [TimeLimit(10,15), TimeLimit(30,15), TimeLimit(60,15)]
 
     for cur_sensor in sensor_names + ["futek"]:
         print("Make the experiment with " + cur_sensor + " sensor. \n Press enter if ready")
         input()
-        for cur_attempt in range(attempts):
-            print("Now is a " + str(cur_attempt) + " attempt. \n Press enter if ready")
+        for time_limit in time_limits:
+            print ("Time for waiting is " + str(time_limit.start))
             input()
-            fl = False
-            while fl == False:
-                if cur_sensor != "futek":
-                    a = VelostatSensor(file_name="autocorr_"+str(cur_attempt),
-                    folder_name="question_5/"+cur_sensor+"/autocorr/attempt_"+str(cur_attempt))
-                else:
-                    a = FutekSensor(file_name="autocorr"+str(cur_attempt),
-                    folder_name="question_5/"+cur_sensor+"/autocorr/attempt_"+str(cur_attempt))
-                print("Put on sensor 2 bricks, enter, wait while data starts to flow, put off bricks, wait till end")
+            for cur_attempt in range(attempts):
+                print("Now is a " + str(cur_attempt) + " attempt. \n Press enter if ready")
                 input()
-                time.sleep(time_limit.start)
-                t0= time.time()
-                while time.time() - t0 <= time_limit.stop:
-                    k = a.read_all_data(write_to_file=1,msg="autocorr")
-                a.close()
-                print("Do you want to continue an experiment, if yes - enter, no - write smth")
-                temp = input()
-                if temp=="":
-                    fl = True
-                if len(temp) > 1:
-                    print("repeat an exeriment")
+                fl = False
+                while fl == False:
+                    if cur_sensor != "futek":
+                        a = VelostatSensor(file_name="exp_1_5"+str(cur_attempt),
+                        folder_name="question_1_5/"+cur_sensor+"/autocorr_" + str(time_limit.start) + "/attempt_"+str(cur_attempt))
+                    else:
+                        a = FutekSensor(file_name="autocorr"+str(cur_attempt),
+                        folder_name="question_1_5/"+cur_sensor+"/autocorr_" + str(time_limit.start) + "/attempt_"+str(cur_attempt))
+                    print("Put on sensor 2 bricks, enter, wait while data starts to flow, put off bricks, wait till end")
+                    input()
+                    time.sleep(time_limit.start)
+                    t0= time.time()
+                    while time.time() - t0 <= time_limit.stop:
+                        # WONT work with FUTEK!! need to fix function
+                        k = a.readData(write_to_file=1,msg="autocorr")
+                    a.close()
+                    print("Do you want to continue an experiment, if yes - enter, no - write smth")
+                    temp = input()
+                    if temp=="":
+                        fl = True
+                    if len(temp) > 1:
+                        print("repeat an exeriment")
+
+
+def question_1_5():
+    experiments = {"e_sm":"empty->0.050(red button)",
+                    "e_md":"empty->0.267(brick)",
+                    "e_bg":"empty->0.64(2 bricks + crap)",
+                   "m_p_sm":"mass (brick)->+0.050(red button)",
+                   "m_p_md":"mass->+0.150(crap medium + button)",
+                   "m_p_bg":"mass->+0.268(brick)"}
+    attempts = 3
+    # time limit in seconds
+    time_limits = [TimeLimit(10,15), TimeLimit(30,15), TimeLimit(60,15), TimeLimit (90,15)]
+    for cur_sensor in sensor_names + ["futek"]:
+            print("Make the experiment with " + cur_sensor + " sensor. \n Press enter if ready")
+            input()
+            for cur_exp_key, cur_exp_val in experiments.items():
+                print("Your experiment is " + str(cur_exp_val) + ". \n Press enter if ready")
+                input()
+                for time_limit in time_limits:
+                    print ("Time for waiting is " + str(time_limit.start))
+                    input()
+                    for cur_attempt in range(attempts):
+                        print("Now is a " + str(cur_attempt) + " attempt. \n Press enter if ready")
+                        input()
+                        fl = False
+                        while fl == False:
+                            parent_conn, child_conn = multiprocessing.Pipe()
+                            # TODO naming
+                            fname = str(cur_exp_key)+"_"+str(cur_attempt)
+                            folname = "question_1_5/"+cur_sensor+"/"+ str(cur_exp_key) + "/" + str(time_limit.start) + "_" + str(time_limit.stop) + "/attempt_"+str(cur_attempt)
+                            if cur_sensor != "futek":
+                                a1 = VelostatSensor(file_name= "stage_1_"+ fname, folder_name=folname)
+                                a2 = VelostatSensor(file_name= "stage_2_"+ fname, folder_name=folname)
+                                a3 = VelostatSensor(file_name= "stage_3_"+ fname, folder_name=folname)
+                                ah = VelostatSensor(file_name= "whole_"+ fname, folder_name=folname)
+                                p1 = multiprocessing.Process(target=read_vel_data, args=(ah,child_conn))
+                            else:
+                                a1= FutekSensor(file_name="stage_1_"+ fname,folder_name=folname)
+                                a2= FutekSensor(file_name="stage_2_"+ fname,folder_name=folname)
+                                a3= FutekSensor(file_name="stage_3_"+ fname,folder_name=folname)
+                                ah= FutekSensor(file_name="whole_"+ fname,folder_name=folname)
+                                p1 = multiprocessing.Process(target=read_futek_data, args=(ah,child_conn))
+                            print("Put " + str(cur_exp_val) + "(first part) and immedietely press enter")
+                            input()
+                            p1.start()
+                            t0= time.time()
+                            while time.time() - t0 <= time_limit.start:
+                                string_data = parent_conn.recv()
+                                a1.text_file.write(string_data + str(a1.cur_timestamp) + "\n")
+                                # k = a1.readData(write_to_file=1)
+                            a1.close()
+                            print("Put " + str(cur_exp_val) + "(second part) and immedietely push enter")
+                            input()
+                            t0= time.time()
+                            while time.time() - t0 <= time_limit.start:
+                                string_data = parent_conn.recv()
+                                a2.text_file.write(string_data + str(a2.cur_timestamp) + "\n")
+                                # k = a2.readData(write_to_file=1)
+                            a2.close()
+                            print("Remove everything after pushing enter, not before)")
+                            input()
+                            t0= time.time()
+                            while time.time() - t0 <= time_limit.start:
+                                string_data = parent_conn.recv()
+                                a3.text_file.write(string_data + str(a3.cur_timestamp) + "\n")
+                                # k = a3.readData(write_to_file=1)
+                            a3.close()
+                            p1.terminate()                   
+                            print("Do you want to continue an experiment, if yes - enter, no - write smth")
+                            temp = input()
+                            if temp=="":
+                                fl = True
+                            if len(temp) > 1:
+                                print("repeat an exeriment")
 
 
 if __name__ == '__main__':
     # question_1()
     # question_3()
-    # question_5()
-    question_2()
+    question_1_5()
+    # question_2()
     # question_4()
