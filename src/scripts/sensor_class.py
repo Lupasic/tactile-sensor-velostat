@@ -57,7 +57,8 @@ class SensorBase:
         else:
             msg = " " + msg
         if self.text_file is not None:
-            print(string_data + str(self.cur_timestamp) + msg)
+            if self._debug == 1:
+                print(string_data + str(self.cur_timestamp) + msg)
             self.text_file.write(string_data + str(self.cur_timestamp)+ msg + "\n")
         else:
             print("File is not exist, cannot write to file")
