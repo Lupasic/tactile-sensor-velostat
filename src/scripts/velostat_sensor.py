@@ -92,7 +92,7 @@ class VelostatSensor(SensorBase):
 
 
 if __name__ == '__main__':
-    a = VelostatSensor()
+    a = VelostatSensor(debug=True)
 #  new 1 [[0.3014, -0.008011, 1.648, -0.2337]]
     # a = VelostatSensor(calib_coeff=[[0.432, -0.03483, 1.742, -0.2784]])
     while True:

@@ -20,18 +20,19 @@ sensor_names = ["old_1","old_2","new_1","new_3_triple", "double"]
 
 q = multiprocessing.Queue()
 
-def read_vel_data(velostat,pipe_to_sensor = None, pipe_to_main = None):
+def read_vel_data(velostat,pipe_to_sensor_r = None, pipe_to_main_s = None):
     while True:
         k = velostat.readData(write_to_file=1)
-        if pipe_to_sensor != None and pipe_to_sensor.poll():
-            pipe_to_main.send(k)
-            pipe_to_sensor.recv()
+        if pipe_to_sensor_r != None and pipe_to_sensor_r.poll():
+            pipe_to_main_s.send(k)
+            pipe_to_sensor_r.recv()
 
-def read_futek_data(futek,child_conn = None):
+def read_futek_data(futek,pipe_to_sensor_r = None, pipe_to_main_s = None):
     while True:
         k = futek.readData(write_to_file=1)
-        if child_conn != None:
-            child_conn.send(k)
+        if pipe_to_sensor_r != None and pipe_to_sensor_r.poll():
+            pipe_to_main_s.send(k)
+            pipe_to_sensor_r.recv()
 
 
 def question_1():
@@ -138,6 +139,7 @@ def question_2():
 
 def question_3():
     experiments = {0:"0",
+                    0.035: "crap small",
                     0.05: "button",
                     0.086: "button + crap small",
                     0.11: "crap big",
@@ -304,7 +306,7 @@ def question_1_5():
                    "m_p_bg":"mass->+0.268(brick)"}
     attempts = 3
     # time limit in seconds
-    time_limits = [TimeLimit(10,15), TimeLimit(30,15), TimeLimit(60,15), TimeLimit (90,15)]
+    time_limits = [TimeLimit (60,20)]
     for cur_sensor in sensor_names + ["futek"]:
             print("Make the experiment with " + cur_sensor + " sensor. \n Press enter if ready")
             input()
@@ -319,7 +321,11 @@ def question_1_5():
                         input()
                         fl = False
                         while fl == False:
-                            pipe_to_main, pipe_to_sensor = multiprocessing.Pipe(duplex=False)
+                            # The way how i am using pipe here
+                            # https://stackoverflow.com/questions/67609301/how-can-i-get-the-most-recent-value-from-a-data-stream-in-a-separate-python-mult
+                            # https://docs-python.ru/standart-library/paket-multiprocessing-python/klass-pipe-modulja-multiprocessing/
+                            pipe_to_main_r, pipe_to_main_s = multiprocessing.Pipe(duplex=False)
+                            pipe_to_sensor_r, pipe_to_sensor_s = multiprocessing.Pipe(duplex=False)
                             # TODO naming
                             fname = str(cur_exp_key)+"_"+str(cur_attempt)
                             folname = "question_1_5/"+cur_sensor+"/"+ str(cur_exp_key) + "/" + str(time_limit.start) + "_" + str(time_limit.stop) + "/attempt_"+str(cur_attempt)
@@ -327,36 +333,46 @@ def question_1_5():
                             if cur_sensor != "futek":
                                 for cur_name in ["stage_1_", "stage_2_", "stage_3_", "whole_"]:
                                     a.append(VelostatSensor(file_name= cur_name + fname, folder_name=folname))
-                                p1 = multiprocessing.Process(target=read_vel_data, args=(a[-1],pipe_to_sensor,pipe_to_main,))
+                                p1 = multiprocessing.Process(target=read_vel_data, args=(a[-1],pipe_to_sensor_r,pipe_to_main_s,))
                             else:
                                 for cur_name in ["stage_1_", "stage_2_", "stage_3_", "whole_"]:
                                     a.append(FutekSensor(file_name= cur_name + fname, folder_name=folname))
-                                p1 = multiprocessing.Process(target=read_futek_data, args=(a[-1],pipe_to_sensor,pipe_to_main,))
+                                p1 = multiprocessing.Process(target=read_futek_data, args=(a[-1],pipe_to_sensor_r,pipe_to_main_s,))
                             print("Put " + str(cur_exp_val) + "(first part) and immedietely press enter")
                             input()
+                            pipe_to_sensor_s.send(None)
                             p1.start()
                             t0= time.time()
-                            while time.time() - t0 <= time_limit.start:
-                                string_data = str(pipe_to_main.recv()[0]) + " "
+                            while time.time() - t0 <= 10:
+                                string_data = str(pipe_to_main_r.recv()[0]) + " "
                                 print(string_data)
                                 a[0].text_file.write(string_data + str(datetime.datetime.now().timestamp()) + "\n")
-                                pipe_to_sensor.send(None)
+                                pipe_to_sensor_s.send(None)
                             a[0].close()
                             print("Put " + str(cur_exp_val) + "(second part) and immedietely push enter")
                             input()
                             t0= time.time()
+                            # clear last data from pipe
+                            pipe_to_main_r.recv()[0]
+                            pipe_to_sensor_s.send(None)
                             while time.time() - t0 <= time_limit.start:
-                                string_data = str(pipe_to_main.recv()[0]) + " "
+                                string_data = str(pipe_to_main_r.recv()[0]) + " "
+                                print(string_data)
                                 a[1].text_file.write(string_data + str(datetime.datetime.now().timestamp()) + "\n")
-                                pipe_to_sensor.send(None)
+                                pipe_to_sensor_s.send(None)
                             a[1].close()
                             print("Remove everything after pushing enter, not before)")
                             input()
                             t0= time.time()
+                            # clear last data from pipe
+                            pipe_to_main_r.recv()[0]
+                            pipe_to_sensor_s.send(None)
+
                             while time.time() - t0 <= time_limit.stop:
-                                string_data = str(pipe_to_main.recv()[0]) + " "
+                                string_data = str(pipe_to_main_r.recv()[0]) + " "
+                                print(string_data)
                                 a[2].text_file.write(string_data + str(datetime.datetime.now().timestamp()) + "\n")
-                                pipe_to_sensor.send(None)
+                                pipe_to_sensor_s.send(None)
                             a[2].close()
                             p1.terminate()                   
                             print("Do you want to continue an experiment, if yes - enter, no - write smth")
