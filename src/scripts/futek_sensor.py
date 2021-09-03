@@ -66,7 +66,7 @@ class FutekSensor(SensorBase):
 
 if __name__ == '__main__':
     a = FutekSensor()
-    futek = FutekSensor(port='/dev/ttyUSB2',file_name="futek_extra")
+    # futek = FutekSensor(port='/dev/ttyUSB2',file_name="futek_extra")
     while True:
         k = a.readData(write_to_file=1)
-        d = futek.readData(write_to_file=1)
+        # d = futek.readData(write_to_file=1)
