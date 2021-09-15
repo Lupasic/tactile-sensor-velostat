@@ -2,10 +2,12 @@ USER root
 
 # Install packages for fruitful work
 RUN apt-get update && apt-get install -q -y \ 
-    libxtst6 && \
+    libxtst6 \
+    qt5-default  && \
   pip3 install \
     matplotlib \
     urx \
+    scipy \
     pyserial && \
   rm -rf /var/lib/apt/lists/*
 
