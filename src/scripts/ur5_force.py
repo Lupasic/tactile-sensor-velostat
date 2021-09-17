@@ -1,8 +1,7 @@
 import urx
-from math import pi
 from futek_sensor import FutekSensor
 import numpy as np
-from time import perf_counter
+from time import perf_counter, time, sleep
 from numpy import array, frexp, sin, cos, pi, linspace, random, matrix
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
@@ -30,7 +29,7 @@ class UR5e_force:
         self.__max_lin_vel = 0.1
 
         # modification trajectory tune params
-        self.__vir_stiff = 500
+        self.__vir_stiff = 200
         self.__freq_mod_traj = 100
 
 
@@ -52,6 +51,9 @@ class UR5e_force:
     def lin(self, target_pos, wait=True):
         self.rob.movel(target_pos, acc= self.__max_lin_acc, vel= self.__max_lin_vel ,wait=wait)
 
+    def freedrive_transient(self, timeout=30):
+        self.rob.set_freedrive(1, timeout=timeout)
+        sleep(timeout)
 
     def up(self, wait=True,dz=0.01):
         if wait:
@@ -95,7 +97,7 @@ class UR5e_force:
         return X_g[2] - F_d/self.__vir_stiff
 
     def _force_planner(self, X_g, dX_g, F_d):
-        X_g[2] = self.__modify_z_g(F_d, X_g)
+        # X_g[2] = self.__modify_z_g(F_d, X_g)
         try: 
             t0 = perf_counter()
             t1 = 0
@@ -107,7 +109,7 @@ class UR5e_force:
                     self.Xd_shared[:] = X_d_mod
                     self.dXd_shared[:] = dX_d_mod
                     t1 = t
-                    print(f'{X_d_mod} {dX_d_mod}', end = '\r', flush = True)
+                    # print(f'{X_d_mod} {dX_d_mod}', end = '\r', flush = True)
         except KeyboardInterrupt:
             pass
 
@@ -144,7 +146,7 @@ class UR5e_force:
                     force_data.append(self.__force_from_sensor.value)
                     time.append(t)
                     t1 = t
-                    # print(f'{x_act[-1][2].round(3)} {x_des[-1][2].round(3)} {x_des[-1][2].round(3) - x_act[-1][2].round(3)} {np.linalg.norm((X_d-X_cur))}', end = '\r', flush = True)
+                    print(f'{x_act[-1][2].round(3)} {x_des[-1][2].round(3)} {self.__force_from_sensor.value}', end = '\r', flush = True)
   
                 # if dX_cur is not None:
                 #     if np.linalg.norm((X_d-X_cur)) < eps and np.linalg.norm(dX_d - dX_cur) < eps:
@@ -205,18 +207,37 @@ class UR5e_force:
                 self.__force_from_sensor.value = 0
 
 
+def basic_start(ur10, updz = 0.008):
+    starting_pos = [-0.6284734457983073, 0.04110124901844167, 0.24322792682955954, 2.885542842994124, -0.09630215284222861, -0.8197553730344054]
+    print("start freedrive")
+    ur10.freedrive_transient(15)
+    print("end freedrive")
+    sensor_init_pose = ur10.rob.getl()
+    print(sensor_init_pose)
+    sensor_init_pose = sensor_init_pose[:3] + ur10._common_orient
+    sensor_init_pose[2]=sensor_init_pose[2]+updz
+    print(sensor_init_pose)
+    ur10.lin(starting_pos)
+    return sensor_init_pose, starting_pos
+
 if __name__ == '__main__':
     ur_robot = UR5e_force(enable_force = 1)
     print(ur_robot.rob)
 
-    X_cur = ur_robot.rob.getl()[:3]
-    X_cur[2] = 0.4
-    X_cur[1] = 0.3
-    X_cur[0] = -0.5
-    X_g = X_cur
+    X_g, b = basic_start(ur_robot, updz = 0)
+    print(f'"\n" {"X_g -"} {X_g} {"b - "} {b} {"before"}')
+    X_start = X_g.copy()
+    X_start[2] = 0.3
+    ur_robot.lin(X_start)
+    print(X_g)
+    # X_cur = ur_robot.rob.getl()[:3]
+    # X_cur[2] = 0.4
+    # X_cur[1] = 0.3
+    # X_cur[0] = -0.5
+    # X_g = X_cur
 
     # ur_robot.vel_control(X_g, [0,0,0])
-    p1 = Process(target=ur_robot._force_planner, args=(X_g, [0,0,0],2))
+    p1 = Process(target=ur_robot._force_planner, args=(X_g, [0,0,0],5))
     p1.start()
     # p2 = Process(target=ur_robot.vel_control, args=(X_g, X_g))
     # p2.start()
