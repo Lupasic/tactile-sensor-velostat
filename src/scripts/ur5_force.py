@@ -1,3 +1,4 @@
+import imp
 import urx
 from futek_sensor import FutekSensor
 import numpy as np
@@ -6,6 +7,7 @@ from numpy import array, frexp, sin, cos, pi, linspace, random, matrix
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
 from multiprocessing import Process, Value, Array
+import rtde_control
 
 # https://github.com/LukeSkypewalker/URX-jupiter-notebook/blob/master/URX_notebook.ipynb
 
@@ -16,7 +18,7 @@ class UR5e_force:
     def __init__(self, address="172.31.1.25", debug = 1, enable_force = 1, file_name=None, folder_name="futek_data"):
         self._debug = debug
         self._enable_force = enable_force
-        self.rob = urx.Robot(address, use_rt=False)
+        self.rob = urx.Robot(address, use_rt=True)
 
         # shared memory
         self.Xd_shared = Array('d',[0,0,0])
@@ -29,13 +31,13 @@ class UR5e_force:
         self.__max_lin_vel = 0.1
 
         # modification trajectory tune params
-        self.__vir_stiff = 200
+        self.__vir_stiff = 500000
         self.__freq_mod_traj = 100
 
 
         # vel control parameters
-        self.__freq_log = 100
-        self.__k = 1
+        self.__freq_log = 10
+        self.__k = 0.5
 
         # todo
         self._common_orient=[3.14,0.1,0]
@@ -97,7 +99,7 @@ class UR5e_force:
         return X_g[2] - F_d/self.__vir_stiff
 
     def _force_planner(self, X_g, dX_g, F_d):
-        # X_g[2] = self.__modify_z_g(F_d, X_g)
+        X_g[2] = self.__modify_z_g(F_d, X_g)
         try: 
             t0 = perf_counter()
             t1 = 0
@@ -200,9 +202,10 @@ class UR5e_force:
 
     def __read_data_from_force_sensor(self):
         while True:
-            rec_val =  self.futek.raw2F(self.futek.readData(write_to_file=1))
+            rec_val =  self.futek.readData(write_to_file=1)
             if rec_val > 1:
                 self.__force_from_sensor.value = rec_val
+                print(rec_val)
             else:
                 self.__force_from_sensor.value = 0
 
@@ -223,7 +226,6 @@ def basic_start(ur10, updz = 0.008):
 if __name__ == '__main__':
     ur_robot = UR5e_force(enable_force = 1)
     print(ur_robot.rob)
-
     X_g, b = basic_start(ur_robot, updz = 0)
     print(f'"\n" {"X_g -"} {X_g} {"b - "} {b} {"before"}')
     X_start = X_g.copy()
@@ -237,7 +239,7 @@ if __name__ == '__main__':
     # X_g = X_cur
 
     # ur_robot.vel_control(X_g, [0,0,0])
-    p1 = Process(target=ur_robot._force_planner, args=(X_g, [0,0,0],5))
+    p1 = Process(target=ur_robot._force_planner, args=(X_g, [0,0,0],800))
     p1.start()
     # p2 = Process(target=ur_robot.vel_control, args=(X_g, X_g))
     # p2.start()
