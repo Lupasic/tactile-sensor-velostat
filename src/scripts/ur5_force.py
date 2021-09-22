@@ -1,5 +1,4 @@
-import imp
-import urx
+# import urx
 from futek_sensor import FutekSensor
 import numpy as np
 from time import perf_counter, time, sleep
@@ -8,17 +7,23 @@ import matplotlib.pyplot as plt
 from scipy.integrate import odeint
 from multiprocessing import Process, Value, Array
 import rtde_control
+import rtde_receive
 
 # https://github.com/LukeSkypewalker/URX-jupiter-notebook/blob/master/URX_notebook.ipynb
 
 # https://s3-eu-west-1.amazonaws.com/ur-support-site/105198/scriptManual_SW5.10.pdf
+
+# https://sdurobotics.gitlab.io/ur_rtde/examples/examples.html#speedj-example
+
 
 
 class UR5e_force:
     def __init__(self, address="172.31.1.25", debug = 1, enable_force = 1, file_name=None, folder_name="futek_data"):
         self._debug = debug
         self._enable_force = enable_force
-        self.rob = urx.Robot(address, use_rt=True)
+        self.rob_c = rtde_control.RTDEControlInterface(address)
+        self.rob_r = rtde_receive.RTDEReceiveInterface(address)
+
 
         # shared memory
         self.Xd_shared = Array('d',[0,0,0])
@@ -26,18 +31,18 @@ class UR5e_force:
         self.__force_from_sensor = Value('d',0.0)
 
         # vel and acc constraints
-        self.__max_operational_acc = 0.1
-        self.__max_lin_acc = 0.1
-        self.__max_lin_vel = 0.1
+        self.__max_operational_acc = 0.4
+        self.__max_lin_acc = 0.5
+        self.__max_lin_vel = 0.5
 
         # modification trajectory tune params
-        self.__vir_stiff = 500000
-        self.__freq_mod_traj = 100
+        self.__vir_stiff = 400000
+        self.__freq_mod_traj = 500
 
 
         # vel control parameters
-        self.__freq_log = 10
-        self.__k = 0.5
+        self.__freq_log = 500
+        self.__k = 0.4
 
         # todo
         self._common_orient=[3.14,0.1,0]
@@ -51,23 +56,29 @@ class UR5e_force:
 
 
     def lin(self, target_pos, wait=True):
-        self.rob.movel(target_pos, acc= self.__max_lin_acc, vel= self.__max_lin_vel ,wait=wait)
+        if wait:
+            asyncc = False
+        else:
+            asyncc = True    
+        self.rob_c.moveL(target_pos, self.__max_lin_vel, self.__max_lin_acc, asyncc)
 
-    def freedrive_transient(self, timeout=30):
-        self.rob.set_freedrive(1, timeout=timeout)
+    def freedrive_transient(self, timeout=20):
+        self.rob_c.teachMode()
         sleep(timeout)
+        self.rob_c.endTeachMode()
 
     def up(self, wait=True,dz=0.01):
         if wait:
-            self.rob.up(z=dz, acc= self.__max_lin_acc, vel= self.__max_lin_vel)
+            asyncc = False
         else:
-            cur_pose = self.rob.getl()
-            cur_pose[2] += dz
-            # cur_pose[3] = -cur_pose[3]
-            # cur_pose[4] = -cur_pose[4]
-            if self._debug:
-                print(cur_pose)
-            self.rob.movel(cur_pose, acc= self.__max_lin_acc, vel= self.__max_lin_vel, wait=False, relative=False, threshold=None)
+            asyncc = True  
+        cur_pose = self.rob_r.getActualTCPPose()
+        cur_pose[2] += dz
+        # cur_pose[3] = -cur_pose[3]
+        # cur_pose[4] = -cur_pose[4]
+        if self._debug:
+            print(cur_pose)
+        self.rob_c.moveL(cur_pose, self.__max_lin_vel, self.__max_lin_acc, asyncc)
 
 
     def __f_x(self, delta_prev,t,F_cur):
@@ -115,9 +126,9 @@ class UR5e_force:
         except KeyboardInterrupt:
             pass
 
-    def vel_control(self, X_d, dX_d):
-        X_d = array(X_d)
-        dX_d = array(dX_d)
+    def vel_control(self, X_d = None, dX_d = None):
+        # X_d = array(X_d)
+        # dX_d = array(dX_d)
         dX_cur = None
         x_act = []
         x_des = []
@@ -128,27 +139,26 @@ class UR5e_force:
             t0 = perf_counter()
             t1 = 0
             fl = 0
+            i = 0
             while True:
                 X_d = array(self.Xd_shared[:])
                 
                 dX_d = array(self.dXd_shared[:])
                 t = perf_counter() -t0
-                state = self.rob.getl()
+                state = self.rob_r.getActualTCPPose()
                 X_cur = array(state[:3])
                 U = dX_d + self.__k*(X_d - X_cur)
                 # U = self.dXd_shared[:] + self.__k*(self.Xd_shared[:] - X_cur)
-                self.rob.speedx("speedl",[U[0],U[1],U[2],0,0,0], self.__max_operational_acc, 5)
-                if t - t1 >1/self.__freq_log:
-                    if fl:
-                        dX_cur = (X_cur - x_act[-1])/(t-t1)
-                    if fl == 0:
-                        fl = 1
+                self.rob_c.speedL([U[0],U[1],U[2],0,0,0], self.__max_operational_acc, 1/self.__freq_log)
+                if t -t1 < 1/self.__freq_log:
+                    sleep(1/self.__freq_log - (t -t1))
+                if t - t1 >= 1/self.__freq_log and np.linalg.norm(X_d) > 0.1:
                     x_act.append(list(X_cur))
                     x_des.append(list(X_d))
                     force_data.append(self.__force_from_sensor.value)
                     time.append(t)
                     t1 = t
-                    print(f'{x_act[-1][2].round(3)} {x_des[-1][2].round(3)} {self.__force_from_sensor.value}', end = '\r', flush = True)
+                    print(f'{i} {x_act[-1][2].round(3)} {x_des[-1][2].round(3)} {self.__force_from_sensor.value}', end = '\r', flush = True)
   
                 # if dX_cur is not None:
                 #     if np.linalg.norm((X_d-X_cur)) < eps and np.linalg.norm(dX_d - dX_cur) < eps:
@@ -160,7 +170,7 @@ class UR5e_force:
 
 
         except KeyboardInterrupt:
-            self.rob.speedx("speedl",[0,0,0,0,0,0], self.__max_operational_acc, 1)
+            self.rob_c.speedL([0,0,0,0,0,0], self.__max_operational_acc, 1)
             print('Robot is stopped')
             fig, ax = plt.subplots(nrows=4, ncols=1)
             plt.suptitle("Manipulator control, k = " + str(self.__k))
@@ -205,51 +215,37 @@ class UR5e_force:
             rec_val =  self.futek.readData(write_to_file=1)
             if rec_val > 1:
                 self.__force_from_sensor.value = rec_val
-                print(rec_val)
+                # print(rec_val)
             else:
                 self.__force_from_sensor.value = 0
 
 
-def basic_start(ur10, updz = 0.008):
-    starting_pos = [-0.6284734457983073, 0.04110124901844167, 0.24322792682955954, 2.885542842994124, -0.09630215284222861, -0.8197553730344054]
-    print("start freedrive")
-    ur10.freedrive_transient(15)
-    print("end freedrive")
-    sensor_init_pose = ur10.rob.getl()
-    print(sensor_init_pose)
-    sensor_init_pose = sensor_init_pose[:3] + ur10._common_orient
-    sensor_init_pose[2]=sensor_init_pose[2]+updz
-    print(sensor_init_pose)
-    ur10.lin(starting_pos)
-    return sensor_init_pose, starting_pos
+    def basic_start(self, updz = 0.008):
+        starting_pos = [-0.6284734457983073, 0.04110124901844167, 0.24322792682955954, 2.885542842994124, -0.09630215284222861, -0.8197553730344054]
+        print("start freedrive")
+        self.freedrive_transient(5)
+        print("end freedrive")
+        sensor_init_pose = self.rob_r.getActualTCPPose()
+        print(sensor_init_pose)
+        sensor_init_pose = sensor_init_pose[:3] + self._common_orient
+        sensor_init_pose[2]=sensor_init_pose[2]+updz
+        print(sensor_init_pose)
+        self.lin(starting_pos)
+        return sensor_init_pose, starting_pos
 
 if __name__ == '__main__':
     ur_robot = UR5e_force(enable_force = 1)
-    print(ur_robot.rob)
-    X_g, b = basic_start(ur_robot, updz = 0)
+    # print(ur_robot.rob)
+    X_g, b = ur_robot.basic_start(updz = 0)
     print(f'"\n" {"X_g -"} {X_g} {"b - "} {b} {"before"}')
     X_start = X_g.copy()
-    X_start[2] = 0.3
+    X_start[2] = 0.2
     ur_robot.lin(X_start)
     print(X_g)
-    # X_cur = ur_robot.rob.getl()[:3]
-    # X_cur[2] = 0.4
-    # X_cur[1] = 0.3
-    # X_cur[0] = -0.5
-    # X_g = X_cur
-
-    # ur_robot.vel_control(X_g, [0,0,0])
-    p1 = Process(target=ur_robot._force_planner, args=(X_g, [0,0,0],800))
+    p1 = Process(target=ur_robot._force_planner, args=(X_g, [0,0,0],900))
     p1.start()
-    # p2 = Process(target=ur_robot.vel_control, args=(X_g, X_g))
-    # p2.start()
-    ur_robot.vel_control(X_g, [0,0,0])
-    # while True:
-        # print("meow")
-        # pass
-    # # ur_robot.vel_control(X_d, [0,0,0])
-    # ur_robot._force_planner(X_g,[0,0,0],2)
-
+    # p2 = Process(target=ur_robot.vel_control)
+    ur_robot.vel_control()
 
     print("done")
 

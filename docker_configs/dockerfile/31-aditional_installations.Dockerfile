@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -q -y \
   pip3 install \
     matplotlib \
     urx \
+    ur_rtde \
     scipy \
     pyserial && \
   rm -rf /var/lib/apt/lists/*
