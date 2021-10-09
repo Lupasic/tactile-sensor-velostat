@@ -1,11 +1,13 @@
 # import urx
+from numpy.core.fromnumeric import size
+from numpy.lib.function_base import select
 from futek_sensor import FutekSensor
 import numpy as np
 from time import perf_counter, time, sleep
 from numpy import array, frexp, sin, cos, pi, linspace, random, matrix
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
-from multiprocessing import Process, Value, Array
+from multiprocessing import Manager, Process, Value, Array
 import rtde_control
 import rtde_receive
 
@@ -22,6 +24,10 @@ class UR5e_force:
         self._debug = debug
         self._enable_force = enable_force
         self.rob_c = rtde_control.RTDEControlInterface(address)
+
+        manager = Manager()
+        self.glob = manager.Namespace()
+
 
         # shared memory for receiving data from manupulator 
         self.X_cur_shared = Array('d',[0,0,0,0,0,0])
@@ -45,10 +51,10 @@ class UR5e_force:
         
 
         # For plotting
-        self.x_act = []
-        self.x_des = []
-        self.time = []
-        self.force_data = []
+        self.glob.x_act = []
+        self.glob.x_des = []
+        self.glob.time = []
+        self.glob.force_data = []
 
         # vel and acc constraints
         self.__max_operational_acc = 0.4
@@ -112,7 +118,7 @@ class UR5e_force:
             asyncc = False
         else:
             asyncc = True  
-        cur_pose = self.rob_r.getActualTCPPose()
+        cur_pose = self.X_cur_shared[:]
         cur_pose[2] += dz
         # cur_pose[3] = -cur_pose[3]
         # cur_pose[4] = -cur_pose[4]
@@ -125,7 +131,7 @@ class UR5e_force:
         print("start freedrive")
         self.freedrive_transient(5)
         print("end freedrive")
-        sensor_init_pose = self.rob_r.getActualTCPPose()
+        sensor_init_pose = self.X_cur_shared[:]
         print(sensor_init_pose)
         sensor_init_pose = sensor_init_pose[:3] + self._common_orient
         sensor_init_pose[2]=sensor_init_pose[2]+updz
@@ -201,7 +207,6 @@ class UR5e_force:
                     self.dXd_shared[:] = [self.dXg_shared[0], self.dXg_shared[1], self.dXg_shared[2] + ddelta]
                     t1 = t
 
-
     def __solve_diff_eq(self, delta_prev):
         t0 = perf_counter()
         F_cur = self.__force_from_sensor.value
@@ -219,6 +224,10 @@ class UR5e_force:
             t0 = perf_counter()
             t1 = 0
             i = 0
+            x_act = []
+            x_des = []
+            time = []
+            force_data = []
             while True:
                 if self.start_vel_control.value == 0:
                     continue
@@ -230,12 +239,16 @@ class UR5e_force:
                     if t -t1 < 1/self.__freq_log:
                         sleep(1/self.__freq_log - (t -t1))
                     if t - t1 >= 1/self.__freq_log and np.linalg.norm(array(self.Xd_shared[:])) > 0.001:
-                        self.x_act.append(list(self.X_cur_shared[:3]))
-                        self.x_des.append(list(self.Xd_shared[:]))
-                        self.force_data.append(self.__force_from_sensor.value)
-                        self.time.append(t)
+                        x_act.append(list(self.X_cur_shared[:3]))
+                        x_des.append(list(self.Xd_shared[:]))
+                        force_data.append(self.__force_from_sensor.value)
+                        time.append(t)
+                        self.glob.x_act = x_act
+                        self.glob.x_des = x_des
+                        self.glob.time = time
+                        self.glob.force_data = force_data
                         t1 = t
-                        print(f'{i} {array(self.x_act[-1][2]).round(3)} {array(self.x_des[-1][2]).round(3)} {self.__force_from_sensor.value} check_motion \
+                        print(f'{i} {array(self.X_cur_shared[2]).round(3)} {array(self.Xd_shared[2]).round(3)} {self.__force_from_sensor.value} check_motion \
                         {np.linalg.norm(array(self.Xd_shared[:])-array(self.X_cur_shared[:3]))} \
                         {np.linalg.norm(array(self.dXd_shared[:]) - array(self.dX_cur_shared[:3]))} \
                         {abs(self.Fd_real_shared.value - self.__force_from_sensor.value)<=0.01} {self.check_finish_motion()}', end = '\r', flush = True)
@@ -244,8 +257,33 @@ class UR5e_force:
         except KeyboardInterrupt:
             self.rob_c.speedL([0,0,0,0,0,0], self.__max_operational_acc, 1)
             print('Robot is stopped')
-            self.draw_plots(self.x_act, self.x_des, self.time, self.force_data)
+            self.draw_plots(x_act, x_des, time, force_data)
 
+    def define_new_state(self,pos_g, vel_g=[0,0,0],force_g_i=0, force_g_r=0):
+        # ur_robot.start_vel_control.value = 0
+        ur_robot.Xg_shared[:] = pos_g[:3]
+        ur_robot.dXg_shared[:] = vel_g
+        ur_robot.Fd_ideal_shared.value = force_g_i
+        ur_robot.Fd_real_shared.value = force_g_r
+        # ur_robot.start_vel_control.value = 1
+
+
+    def point_load(self, sensor_pos, init_height=0.2, needed_force=0):
+        self.start_vel_control.value = 0
+        starting_pos = sensor_pos.copy()
+        starting_pos[2] = init_height
+        self.lin(starting_pos)
+        self.define_new_state(sensor_pos[:3],vel_g=[0,0,0],force_g_i=needed_force,force_g_r=0)
+        # sleep(2)
+        self.start_vel_control.value = 1
+        while not self.check_finish_motion():
+            continue
+        self.start_vel_control.value = 0
+        self.define_new_state(starting_pos[:3],vel_g=[0,0,0],force_g_i=0,force_g_r=0)
+        self.start_vel_control.value = 1
+        sleep(0.1)
+        while not ur_robot.check_finish_motion():
+            continue
 
 if __name__ == '__main__':
     # 
@@ -253,39 +291,20 @@ if __name__ == '__main__':
     t0 = perf_counter()
     t1 = 0
     p = ur_robot.X_cur_shared[:3]
-    p[2] = 0.1
+    p[2] = 0.2
     ur_robot.Xg_shared[:] = ur_robot.X_cur_shared[:3]
     p1 = Process(target=ur_robot._force_planner)
     p2 = Process(target=ur_robot.vel_control)
     p1.start()
     p2.start()
-    # X_g, b = ur_robot.basic_start(updz = 0)
-    # print(f'"\n" {"X_g -"} {X_g} {"b - "} {b} {"before"}')
-    # X_start = X_g.copy()
-    # X_start[2] = 0.2
-    # ur_robot.lin(X_start)
-    print(f' Initial {ur_robot.Xg_shared[:]}')
-    # while True:
-    #     # this info won't be received in other processes
-    #     # ur_robot.X_cur_shared[:] =  ur_robot.rob_r.getActualTCPPose()
-    #     # ur_robot.dX_cur_shared[:] =  ur_robot.rob_r.getActualTCPSpeed()
+    X_sensor_pos, b = ur_robot.basic_start(updz = 0)
+    ur_robot.point_load(X_sensor_pos)
+    print("done \n done")
+    p1.terminate()
+    p2.terminate()
 
-    #     t = perf_counter() -t0
-    #     # if t - t1 > 10 and fl == 0:
-    #     #     ur_robot.Xg_shared[:] = p
-    #     #     print(f' Current main {ur_robot.Xg_shared[:]}')
-    #     #     t1 = t
-    #     #     fl = 1
-    ur_robot.start_vel_control.value = 1
-    # if ur_robot.check_finish_motion():
-    ur_robot.Xg_shared[:] = p
-    print(f' Current main {ur_robot.Xg_shared[:]}')
-    while not ur_robot.check_finish_motion():
-        continue
-    print("done")
-    # while True:
-    #     t = perf_counter() -t0
-    #     if t - t1 > 5:
-    #         ur_robot.start_vel_control.value = 1
-    #         t1 = t
+    min_len_size = [len(ur_robot.glob.x_des), len(ur_robot.glob.x_act), len(ur_robot.glob.time), len(ur_robot.glob.force_data)]
+    min_len_size.sort()
+    ur_robot.draw_plots(ur_robot.glob.x_act[:min_len_size[0]],ur_robot.glob.x_des[:min_len_size[0]],ur_robot.glob.time[:min_len_size[0]],ur_robot.glob.force_data[:min_len_size[0]])
+
             
