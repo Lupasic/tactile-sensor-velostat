@@ -13,7 +13,7 @@ import time
 class FutekSensor(SensorBase):
     """ Main class """
 
-    def __init__(self, port='/dev/ttyUSB0', baudrate=115200, debug=0, write_to_fl=1,file_name=None, folder_name="futek_data"):
+    def __init__(self, port='/dev/ttyUSB3', baudrate=115200, debug=0, write_to_fl=1,file_name=None, folder_name="futek_data"):
         """ Open serial port if needed.
         Args:
             debug - if true, other methods print information
@@ -32,7 +32,11 @@ class FutekSensor(SensorBase):
             while len(s) == 0:
                 s = self.ser.readline().decode('utf-8').rstrip()
                 break
-            reading = int(s)
+            # reading = int(s)
+            if isinstance(s,int):
+                reading = int(s)
+            else:
+                return -1
             self.cur_timestamp = datetime.datetime.now().timestamp()
             if self._debug:
                 print(self.raw2F(reading))

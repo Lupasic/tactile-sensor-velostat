@@ -10,6 +10,7 @@ from scipy.integrate import odeint
 from multiprocessing import Manager, Process, Value, Array
 import rtde_control
 import rtde_receive
+import socket
 
 # https://github.com/LukeSkypewalker/URX-jupiter-notebook/blob/master/URX_notebook.ipynb
 
@@ -41,8 +42,10 @@ class UR5e_force:
         self.dXd_shared = Array('d',[0,0,0])
         self.__force_from_sensor = Value('d',0.0)
 
+        self.term_process = Value('i',0)
+
         # shared memory
-        self.Xg_shared = Array('d', [0, 0, 0],lock=False)
+        self.Xg_shared = Array('d', [0, 0, 0])
         self.dXg_shared = Array('d', [0, 0, 0])
         self.Fd_ideal_shared = Value('d', 0.0)
         self.Fd_real_shared = Value('d', 0.0)
@@ -68,7 +71,7 @@ class UR5e_force:
 
         # vel control parameters
         self.__freq_log = 500
-        self.__k = 0.4
+        self.__k = 0.99
 
         # sensor parameters
         self.force_threshold = 1
@@ -86,6 +89,14 @@ class UR5e_force:
             self.X_cur_shared[:] =  self.rob_r.getActualTCPPose()
             self.dX_cur_shared[:] =  self.rob_r.getActualTCPSpeed()
             # print(f'{self.X_cur_shared[:]}',flush=True,end='\r')
+
+    def init_robot_control(self):
+        self.Xg_shared[:] = self.X_cur_shared[:3]
+        p1 = Process(target=self._force_planner)
+        p2 = Process(target=self.vel_control)
+        p1.start()
+        p2.start()
+        return p1, p2
 
     def __start_futek_sensor(self, file_name,folder_name):
         self.futek = FutekSensor(debug=0,file_name=file_name, folder_name=folder_name)
@@ -189,23 +200,22 @@ class UR5e_force:
         while True:
             if self.start_vel_control.value == 0:
                 continue
-            else:
-            # print(f' Current {ur_robot.dXd_shared[:]}',flush=True, end = '\r')
-                if Xg_cur != self.Xg_shared[:]:
-                    print(f' New point received {self.Xg_shared[:]}')
-                    # modify z axis
-                    self.Xg_shared[2] = self.Xg_shared[2] - self.Fd_ideal_shared.value/self.__vir_stiff
-                    Xg_cur = self.Xg_shared[:]
-                t = perf_counter() -t0 
-                if t - t1 >1/self.__freq_mod_traj:
-                    # modify trajectory_based on force
-                    delta, ddelta, __ = self.__solve_diff_eq(delta_prev)
-                    # in first iteration, __delta_prev_should be defined
-                    self.__delta_prev = delta
-                    # modify X_d
-                    self.Xd_shared[:] = [self.Xg_shared[0], self.Xg_shared[1], self.Xg_shared[2] + delta]
-                    self.dXd_shared[:] = [self.dXg_shared[0], self.dXg_shared[1], self.dXg_shared[2] + ddelta]
-                    t1 = t
+        # print(f' Current {ur_robot.dXd_shared[:]}',flush=True, end = '\r')
+            if Xg_cur != self.Xg_shared[:]:
+                print(f' New point received {self.Xg_shared[:]}')
+                # modify z axis
+                self.Xg_shared[2] = self.Xg_shared[2] - self.Fd_ideal_shared.value/self.__vir_stiff
+                Xg_cur = self.Xg_shared[:]
+            t = perf_counter() -t0 
+            if t - t1 >1/self.__freq_mod_traj:
+                # modify trajectory_based on force
+                delta, ddelta, __ = self.__solve_diff_eq(delta_prev)
+                # in first iteration, __delta_prev_should be defined
+                self.__delta_prev = delta
+                # modify X_d
+                self.Xd_shared[:] = [self.Xg_shared[0], self.Xg_shared[1], self.Xg_shared[2] + delta]
+                self.dXd_shared[:] = [self.dXg_shared[0], self.dXg_shared[1], self.dXg_shared[2] + ddelta]
+                t1 = t
 
     def __solve_diff_eq(self, delta_prev):
         t0 = perf_counter()
@@ -231,28 +241,27 @@ class UR5e_force:
             while True:
                 if self.start_vel_control.value == 0:
                     continue
-                else:
-                    t = perf_counter() - t0
-                    # U = dX_d + self.__k*(X_d - X_cur)
-                    U = array(self.dXd_shared[:]) + self.__k*(array(self.Xd_shared[:]) - array(self.X_cur_shared[:3]))
-                    self.rob_c.speedL([U[0],U[1],U[2],0,0,0], self.__max_operational_acc, 1/self.__freq_log)
-                    if t -t1 < 1/self.__freq_log:
-                        sleep(1/self.__freq_log - (t -t1))
-                    if t - t1 >= 1/self.__freq_log and np.linalg.norm(array(self.Xd_shared[:])) > 0.001:
-                        x_act.append(list(self.X_cur_shared[:3]))
-                        x_des.append(list(self.Xd_shared[:]))
-                        force_data.append(self.__force_from_sensor.value)
-                        time.append(t)
-                        self.glob.x_act = x_act
-                        self.glob.x_des = x_des
-                        self.glob.time = time
-                        self.glob.force_data = force_data
-                        t1 = t
-                        print(f'{i} {array(self.X_cur_shared[2]).round(3)} {array(self.Xd_shared[2]).round(3)} {self.__force_from_sensor.value} check_motion \
-                        {np.linalg.norm(array(self.Xd_shared[:])-array(self.X_cur_shared[:3]))} \
-                        {np.linalg.norm(array(self.dXd_shared[:]) - array(self.dX_cur_shared[:3]))} \
-                        {abs(self.Fd_real_shared.value - self.__force_from_sensor.value)<=0.01} {self.check_finish_motion()}', end = '\r', flush = True)
-
+                # print
+                t = perf_counter() - t0
+                # U = dX_d + self.__k*(X_d - X_cur)
+                U = array(self.dXd_shared[:]) + self.__k*(array(self.Xd_shared[:]) - array(self.X_cur_shared[:3]))
+                self.rob_c.speedL([U[0],U[1],U[2],0,0,0], self.__max_operational_acc, 1/self.__freq_log)
+                if t -t1 < 1/self.__freq_log:
+                    sleep(1/self.__freq_log - (t -t1))
+                if t - t1 >= 1/self.__freq_log and np.linalg.norm(array(self.Xd_shared[:])) > 0.001:
+                    x_act.append(list(self.X_cur_shared[:3]))
+                    x_des.append(list(self.Xd_shared[:]))
+                    force_data.append(self.__force_from_sensor.value)
+                    time.append(t)
+                    self.glob.x_act = x_act
+                    self.glob.x_des = x_des
+                    self.glob.time = time
+                    self.glob.force_data = force_data
+                    t1 = t
+                    print(f'{i} {array(self.X_cur_shared[2]).round(3)} {array(self.Xd_shared[2]).round(3)} {self.__force_from_sensor.value} check_motion \
+                    {np.linalg.norm(array(self.Xd_shared[:])-array(self.X_cur_shared[:3]))} \
+                    {np.linalg.norm(array(self.dXd_shared[:]) - array(self.dX_cur_shared[:3]))} \
+                    {abs(self.Fd_real_shared.value - self.__force_from_sensor.value)<=0.01} {self.check_finish_motion()}', end = '\r', flush = True)
 
         except KeyboardInterrupt:
             self.rob_c.speedL([0,0,0,0,0,0], self.__max_operational_acc, 1)
@@ -274,7 +283,6 @@ class UR5e_force:
         starting_pos[2] = init_height
         self.lin(starting_pos)
         self.define_new_state(sensor_pos[:3],vel_g=[0,0,0],force_g_i=needed_force,force_g_r=0)
-        # sleep(2)
         self.start_vel_control.value = 1
         while not self.check_finish_motion():
             continue
@@ -288,21 +296,18 @@ class UR5e_force:
 if __name__ == '__main__':
     # 
     ur_robot = UR5e_force(enable_force = 1)
-    t0 = perf_counter()
-    t1 = 0
-    p = ur_robot.X_cur_shared[:3]
-    p[2] = 0.2
+    p1, p2 = ur_robot.init_robot_control()
+    p = ur_robot.X_cur_shared[:]
+    p[2] = 0.5
     ur_robot.Xg_shared[:] = ur_robot.X_cur_shared[:3]
-    p1 = Process(target=ur_robot._force_planner)
-    p2 = Process(target=ur_robot.vel_control)
-    p1.start()
-    p2.start()
     X_sensor_pos, b = ur_robot.basic_start(updz = 0)
     ur_robot.point_load(X_sensor_pos)
-    print("done \n done")
+    print("done \n done")  
+    ur_robot.term_process.value = 1
+
     p1.terminate()
     p2.terminate()
-
+    print(p)
     min_len_size = [len(ur_robot.glob.x_des), len(ur_robot.glob.x_act), len(ur_robot.glob.time), len(ur_robot.glob.force_data)]
     min_len_size.sort()
     ur_robot.draw_plots(ur_robot.glob.x_act[:min_len_size[0]],ur_robot.glob.x_des[:min_len_size[0]],ur_robot.glob.time[:min_len_size[0]],ur_robot.glob.force_data[:min_len_size[0]])
