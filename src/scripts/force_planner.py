@@ -1,6 +1,6 @@
 from time import perf_counter, sleep
 from scipy.integrate import odeint
-from numpy import linspace
+from numpy import linspace, array, linalg
 from multiprocessing import Manager, Process
 import logging
 
@@ -25,7 +25,7 @@ class ForcePlanner:
         self.new_state.dXd = None
 
     def init_constants(self):
-        self.VIR_STIFF = 400000
+        self.VIR_STIFF = 40000
         self.FREQ = 500
 
     # def set_cur_state(self, robot_manager):
@@ -89,6 +89,8 @@ class ForcePlanner:
         t0 = perf_counter()
         t1 = 0
         delta_prev = 0
+        e = 0.001
+        fl = 0
         while True:
             # if self.log.level == logging.DEBUG:
                 # print(f' Current {self.new_state.Xd}',flush=True, end = '\r')
@@ -97,20 +99,21 @@ class ForcePlanner:
                 continue
             # print(Xg_cur)
 
-            if Xg_cur != self.cur_state.Xg:
+            # if linalg.norm(array(Xg_cur) - array(self.cur_state.Xg)) <= e or fl == 0:
+            if fl == 0:
                 self.log.info(f' New point received {self.cur_state.Xg}')
-                # print(f' New point received {self.cur_state.Xg}')
                 # modify z axis
                 Xg2 = self.cur_state.Xg[2] - self.cur_state.Fd_ideal/self.VIR_STIFF
+                print(f'Inside {Xg2} {self.cur_state.Xg[2]}')
                 self.cur_state.Xg = [self.cur_state.Xg[0],self.cur_state.Xg[1], Xg2]
-                # print(self.cur_state.Xg[2] - self.cur_state.Fd_ideal/self.VIR_STIFF)
-                print(self.cur_state.Xg)
                 Xg_cur = self.cur_state.Xg
+                fl = 1
             t = perf_counter() - t0 
             if t - t1 >=1/self.FREQ:
                 # modify trajectory_based on force
                 delta, ddelta, __ = self.solve_diff_eq_force_planner(delta_prev)
                 # in first iteration, __delta_prev_should be defined
+                print(f' {delta} {delta_prev}',flush=True, end = '\r')
                 delta_prev = delta
                 # modify X_d
                 self.new_state.Xd = [self.cur_state.Xg[0], self.cur_state.Xg[1], self.cur_state.Xg[2] + delta]

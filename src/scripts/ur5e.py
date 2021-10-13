@@ -120,7 +120,7 @@ class UR5e:
         eps = 1e-3
         a = linalg.norm(array(Xd[:3])-array(self.cur_state.X_cur[:3])) <= eps
         b = linalg.norm(array(dXd[:3]) - array(self.cur_state.dX_cur[:3])) <= eps
-        c = abs(Fd_real - self.cur_state.F_cur) <= eps
+        c = abs(Fd_real - self.cur_state.F_cur) <= 3
         if  a and b and c:
             return True
         else:
@@ -139,33 +139,38 @@ class UR5e:
         t1 = 0
         Xd = Xg
         dXd = dXg
-        # self.check_finish_motion(Xd,dXd,Fd_real)
-        while not self.check_finish_motion(Xd,dXd,Fd_real):
-            t = perf_counter() - t0 
-            if t - t1 >1/self.FREQ:
-                self.force_planner.set_cur_state(Xg[:3],dXg,Fd_ideal,self.cur_state.F_cur)
-                Xd, dXd = self.force_planner.get_new_state()
-                self.vel_controller.set_cur_state(Xd, dXd, self.cur_state.X_cur)
-                U = self.vel_controller.get_new_velocity()
-                self.rob_c.speedL(U,self.MAX_OPERATIONAL_ACC,1/self.FREQ)
-                print(f'{array(self.cur_state.X_cur[2]).round(3)} {array(Xd[2]).round(3)} {self.cur_state.F_cur} check_motion \
-                    {linalg.norm(array(Xd)-array(self.cur_state.X_cur[:3]))} \
-                    {linalg.norm(array(dXd) - array(self.cur_state.dX_cur[:3]))} \
-                    {abs(Fd_real - self.cur_state.F_cur)} {self.check_finish_motion(Xd,dXd,Fd_real)}', end = '\r', flush = True)
-                state_logger.receive_data(self.cur_state.X_cur,Xd,t,self.cur_state.F_cur)
-                t1 = t
-        # self.rob_c.stopScript()
-        # QUITE IMPORTANT BOOLSHIT otherwise, I cannot use other commands
-        self.rob_c.reuploadScript()
-        # state_logger.draw_my_plots()
+        try:
+            # self.check_finish_motion(Xd,dXd,Fd_real)
+            while not self.check_finish_motion(Xd,dXd,Fd_real):
+                t = perf_counter() - t0 
+                if t - t1 >1/self.FREQ:
+                    self.force_planner.set_cur_state(Xg[:3],dXg,Fd_ideal,self.cur_state.F_cur)
+                    Xd, dXd = self.force_planner.get_new_state()
+                    self.vel_controller.set_cur_state(Xd, dXd, self.cur_state.X_cur)
+                    U = self.vel_controller.get_new_velocity()
+                    self.rob_c.speedL(U,self.MAX_OPERATIONAL_ACC,1/self.FREQ)
+                    # print(f'{array(self.cur_state.X_cur[2]).round(3)} {array(Xd[2]).round(3)} {self.cur_state.F_cur} check_motion \
+                    #     {linalg.norm(array(Xd)-array(self.cur_state.X_cur[:3]))} \
+                    #     {linalg.norm(array(dXd) - array(self.cur_state.dX_cur[:3]))} \
+                    #     {self.cur_state.F_cur} {self.check_finish_motion(Xd,dXd,Fd_real)}', end = '\r', flush = True)
+                    state_logger.receive_data(self.cur_state.X_cur,Xd,t,self.cur_state.F_cur)
+                    t1 = t
+            # self.rob_c.stopScript()
+            # QUITE IMPORTANT BOOLSHIT otherwise, I cannot use other commands
+            self.rob_c.reuploadScript()
+            return state_logger
+        except KeyboardInterrupt:
+            self.rob_c.speedL([0,0,0,0,0,0], self.MAX_OPERATIONAL_ACC, 1)
+            print('Robot is stopped')
+            state_logger.draw_my_plots()
 
     def point_load(self,Xg,h_init=0.2, dXg = [0,0,0], Fd_ideal=0, Fd_real = 0):
         starting_pos = Xg.copy()
         starting_pos[2] = h_init
         self.lin(starting_pos)
-        self.lin_force(Xg,dXg=dXg,Fd_ideal=Fd_ideal,Fd_real=Fd_real)
-        # self.freedrive_transient(5)
+        kek = self.lin_force(Xg,dXg=dXg,Fd_ideal=Fd_ideal,Fd_real=Fd_real)
         self.up(dz=0.2)
+        kek.draw_my_plots()
 
 def test_non_force_func():
     robot = UR5e(enable_force=0)
@@ -185,7 +190,7 @@ def test_point_load():
         robot.run_env_for_lin_force()
         sleep(1)
         sensor_pos = robot.basic_start()
-        robot.point_load(sensor_pos)
+        robot.point_load(sensor_pos,Fd_ideal=900,Fd_real=900)
         robot.shutdown_robot()
         print("I am here")
     except KeyboardInterrupt:
