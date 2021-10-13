@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt    
+    
     def draw_plots(self, x_act, x_des, time, force_data):
         fig, ax = plt.subplots(nrows=4, ncols=1)
         plt.suptitle("Manipulator control, k = " + str(self.__k))

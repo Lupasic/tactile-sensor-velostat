@@ -21,22 +21,32 @@ class VelocityController:
         self.cur_state.dXd = None
 
         self.new_state = Manager().Namespace()
-        self.new_state.U = None
+        self.new_state.U = [0]*3
 
     def init_constants(self):
         self.FREQ = 500
         self.K = 0.99
 
-    def set_cur_state(self, planner_data, robot_data):
+    # def set_cur_state(self, planner_data, robot_data):
+    #     """Set current state from robot and sensor data
+
+    #     Args:
+    #         planner_data (Manager().Namespace()): should consist of X des, dX des
+    #         robot_data (Manager().Namespace()): should consist of X current
+    #     """        
+    #     self.cur_state.Xd = planner_data.Xd
+    #     self.cur_state.dXd = planner_data.dXd
+    #     self.cur_state.X_cur = robot_data.X_cur
+    def set_cur_state(self, Xd, dXd, X_cur):
         """Set current state from robot and sensor data
 
         Args:
             planner_data (Manager().Namespace()): should consist of X des, dX des
             robot_data (Manager().Namespace()): should consist of X current
         """        
-        self.cur_state.Xd = planner_data.Xd
-        self.cur_state.dXd = planner_data.dXd
-        self.cur_state.X_cur = robot_data.X_cur
+        self.cur_state.Xd = Xd
+        self.cur_state.dXd = dXd
+        self.cur_state.X_cur = X_cur
 
 
 
@@ -45,7 +55,10 @@ class VelocityController:
 
         Returns:
             np.Array: velosities in x, y and z axes and [0,0,0] in orientation
-        """        
+        """
+        # print(len(self.new_state.U))
+        # print(self.new_state.U + [0,0,0])
+        # return [0,0,0,0,0,0]      
         return list(self.new_state.U) + [0,0,0]
 
 
@@ -59,7 +72,7 @@ class VelocityController:
                 or self.cur_state.X_cur == None:
                 continue
             t = perf_counter() - t0
-            self.new_state.U = array(self.cur_state.dXd) + self.K*(array(self.cur_state.Xd) - array(self.cur_state.X_cur[:3]))
+            self.new_state.U = list(array(self.cur_state.dXd) + self.K*(array(self.cur_state.Xd) - array(self.cur_state.X_cur[:3])))
             if t -t1 < 1/self.FREQ:
                 sleep(1/self.FREQ - (t -t1))
             

@@ -1,15 +1,12 @@
-# import urx
-from numpy.core.fromnumeric import size
-from numpy.lib.function_base import select
 from futek_sensor import FutekSensor
-import numpy as np
-from time import perf_counter, time, sleep
-from numpy import array, frexp, sin, cos, pi, linspace, random, matrix
-import matplotlib.pyplot as plt
-from scipy.integrate import odeint
-from multiprocessing import Manager, Process, Value, Array
+from time import perf_counter, sleep
+from numpy import linalg, array
+from multiprocessing import Manager, Process
 import rtde_control
 import rtde_receive
+import logging
+from force_planner import ForcePlanner
+from velocity_controller import VelocityController
 
 # https://github.com/LukeSkypewalker/URX-jupiter-notebook/blob/master/URX_notebook.ipynb
 
@@ -19,129 +16,178 @@ import rtde_receive
 
 # Read more about managers
 
-class UR5e_force:
+class UR5e:
     def __init__(self, address="172.31.1.25", enable_force = 1, file_name=None, folder_name="futek_data"):
-        self._enable_force = enable_force
+        logging.basicConfig(level=logging.DEBUG)
+        self.log = logging.getLogger("UR5e")
+        self.log.setLevel("DEBUG")
         self.rob_c = rtde_control.RTDEControlInterface(address)
+        self.enable_force = enable_force
+        self.fl = 0
+        
+        self.init_constants()
+        self.init_states()
 
-        p = Process(target=self.__read_data_from_manip,args=(address,))
-        p.start()
+        self.process_rob_r = Process(target=self.read_data_from_manip,args=(address,))
+        self.process_rob_r.start()
 
-        # shared memory
-        self.Xd_shared = Array('d',[0,0,0])
-        self.dXd_shared = Array('d',[0,0,0])
-        self.__force_from_sensor = Value('d',0.0)
-
-        self.term_process = Value('i',0)
-
-        # shared memory
-        self.Xg_shared = Array('d', [0, 0, 0])
-        self.dXg_shared = Array('d', [0, 0, 0])
-        self.Fd_ideal_shared = Value('d', 0.0)
-        self.Fd_real_shared = Value('d', 0.0)
-
-        self.start_vel_control = Value('i', 0)
+        if enable_force:
+            futek = FutekSensor(debug=0,file_name=file_name, folder_name=folder_name)
+            self.process_futek = Process(target=self.read_data_from_force_sensor,args=(futek,))
+            self.process_futek.start()
         
 
-        # vel and acc constraints
-        self.__max_operational_acc = 0.4
-        self.__max_lin_acc = 0.5
-        self.__max_lin_vel = 0.5
+    def init_states(self):
+        self.cur_state = Manager().Namespace()
+        self.cur_state.X_cur = None
+        self.cur_state.dX_cur = None
+        self.cur_state.F_cur = None
 
-        # sensor parameters
-        self.force_threshold = 1
+    def init_constants(self):
+        self.FREQ = 500
+        self.MAX_OPERATIONAL_ACC = 0.4
+        self.MAX_LIN_ACC = 0.5
+        self.MAX_LIN_VEL = 0.5
 
-        # todo
+        self.FORCE_THRESHOLD = 1
         self.COMMON_ORIENT=[3.14,0.1,0]
         self.STARTING_POS = [-0.6284734457983073, 0.04110124901844167, 0.24322792682955954, 2.885542842994124, -0.09630215284222861, -0.8197553730344054]
 
-        if self._enable_force:
-            self.__start_futek_sensor(file_name,folder_name)
-
-    def __read_data_from_manip(self,address):
-        self.rob_r = rtde_receive.RTDEReceiveInterface(address)
+    def read_data_from_manip(self,address):
+        rob_r = rtde_receive.RTDEReceiveInterface(address)
         while True:
-            self.X_cur_shared[:] =  self.rob_r.getActualTCPPose()
-            self.dX_cur_shared[:] =  self.rob_r.getActualTCPSpeed()
-            # print(f'{self.X_cur_shared[:]}',flush=True,end='\r')
+            self.cur_state.X_cur =  rob_r.getActualTCPPose()
+            self.cur_state.dX_cur =  rob_r.getActualTCPSpeed()
+            # if self.log.level == logging.DEBUG:
+            #     print(f'{self.X_cur_shared[:]}',flush=True,end='\r')
 
-    def __start_futek_sensor(self, file_name,folder_name):
-        self.futek = FutekSensor(debug=0,file_name=file_name, folder_name=folder_name)
-        p = Process(target=self.__read_data_from_force_sensor)
-        p.start()
-
-    def __read_data_from_force_sensor(self):
+    def read_data_from_force_sensor(self,futek):
         while True:
-            rec_val =  self.futek.readData(write_to_file=1)
-            if rec_val > self.force_threshold:
-                self.__force_from_sensor.value = rec_val
-                # print(rec_val)
+            rec_val =  futek.readData(write_to_file=1)
+            if rec_val > self.FORCE_THRESHOLD:
+                self.cur_state.F_cur = rec_val
             else:
-                self.__force_from_sensor.value = 0
+                self.cur_state.F_cur = 0
+            # print(f'{self.cur_state.F_cur} {rec_val}',end='\r',flush=True)
 
     def lin(self, target_pos, wait=True):
         if wait:
             asyncc = False
         else:
             asyncc = True    
-        self.rob_c.moveL(target_pos, self.__max_lin_vel, self.__max_lin_acc, asyncc)
+        self.rob_c.moveL(target_pos, self.MAX_LIN_VEL, self.MAX_LIN_ACC, asyncc)
 
     def freedrive_transient(self, timeout=20):
         self.rob_c.teachMode()
         sleep(timeout)
         self.rob_c.endTeachMode()
 
+    def shutdown_robot(self):
+        if self.enable_force:
+            self.process_futek.terminate()
+        self.process_rob_r.terminate()
+        if self.fl:
+            self.vel_controller.shutdown_controller()
+            self.force_planner.shutdown_planner()
+        self.log.debug("Robot process was terminated")
+
     def up(self, wait=True,dz=0.01):
         if wait:
             asyncc = False
         else:
             asyncc = True  
-        cur_pose = self.X_cur_shared[:]
+        cur_pose = self.cur_state.X_cur
         cur_pose[2] += dz
-        # cur_pose[3] = -cur_pose[3]
-        # cur_pose[4] = -cur_pose[4]
-        if self._debug:
-            print(cur_pose)
-        self.rob_c.moveL(cur_pose, self.__max_lin_vel, self.__max_lin_acc, asyncc)
+        self.rob_c.moveL(cur_pose, self.MAX_LIN_VEL, self.MAX_LIN_ACC, asyncc)
 
-    def basic_start(self, updz = 0.008):
-        starting_pos = [-0.6284734457983073, 0.04110124901844167, 0.24322792682955954, 2.885542842994124, -0.09630215284222861, -0.8197553730344054]
+    def basic_start(self, updz = 0.000):
         print("start freedrive")
         self.freedrive_transient(5)
         print("end freedrive")
-        sensor_init_pose = self.X_cur_shared[:]
+        sensor_init_pose = self.cur_state.X_cur
         print(sensor_init_pose)
         sensor_init_pose = sensor_init_pose[:3] + self.COMMON_ORIENT
-        sensor_init_pose[2]=sensor_init_pose[2]+updz
+        sensor_init_pose[2] = sensor_init_pose[2]+updz
         print(sensor_init_pose)
-        self.lin(starting_pos)
-        return sensor_init_pose, starting_pos
+        self.lin(self.STARTING_POS)
+        return sensor_init_pose
 
-    def check_finish_motion(self,time =0):
+    def check_finish_motion(self, Xd, dXd, Fd_real):
         eps = 1e-3
-        a = np.linalg.norm(array(self.Xd_shared[:])-array(self.X_cur_shared[:3])) <= eps
-        b = np.linalg.norm(array(self.dXd_shared[:]) - array(self.dX_cur_shared[:3])) <= eps
-        c = abs(self.Fd_real_shared.value - self.__force_from_sensor.value) <= eps
+        a = linalg.norm(array(Xd[:3])-array(self.cur_state.X_cur[:3])) <= eps
+        b = linalg.norm(array(dXd[:3]) - array(self.cur_state.dX_cur[:3])) <= eps
+        c = abs(Fd_real - self.cur_state.F_cur) <= eps
         if  a and b and c:
             return True
         else:
             return False
 
-    def point_load(self, sensor_pos, init_height=0.2, needed_force=0):
-        self.start_vel_control.value = 0
-        starting_pos = sensor_pos.copy()
-        starting_pos[2] = init_height
-        self.lin(starting_pos)
-        self.define_new_state(sensor_pos[:3],vel_g=[0,0,0],force_g_i=needed_force,force_g_r=0)
-        self.start_vel_control.value = 1
-        while not self.check_finish_motion():
-            continue
-        self.start_vel_control.value = 0
-        self.define_new_state(starting_pos[:3],vel_g=[0,0,0],force_g_i=0,force_g_r=0)
-        self.start_vel_control.value = 1
-        sleep(0.1)
-        while not ur_robot.check_finish_motion():
-            continue
+    def run_env_for_lin_force(self):
+        self.force_planner = ForcePlanner()
+        self.force_planner.run_planner()
+        self.vel_controller = VelocityController()
+        self.vel_controller.run_controller()
+        self.fl = 1
+
+    def lin_force(self, Xg, dXg = [0,0,0], Fd_ideal=0, Fd_real = 0):
+        t0 = perf_counter()
+        t1 = 0
+        Xd = Xg
+        dXd = dXg
+        # self.check_finish_motion(Xd,dXd,Fd_real)
+        while not self.check_finish_motion(Xd,dXd,Fd_real):
+            t = perf_counter() - t0 
+            if t - t1 >1/self.FREQ:
+                self.force_planner.set_cur_state(Xg[:3],dXg,Fd_ideal,self.cur_state.F_cur)
+                Xd, dXd = self.force_planner.get_new_state()
+                self.vel_controller.set_cur_state(Xd, dXd, self.cur_state.X_cur)
+                U = self.vel_controller.get_new_velocity()
+                self.rob_c.speedL(U,self.MAX_OPERATIONAL_ACC,1/self.FREQ)
+                print(f'{array(self.cur_state.X_cur[2]).round(3)} {array(Xd[2]).round(3)} {self.cur_state.F_cur} check_motion \
+                    {linalg.norm(array(Xd)-array(self.cur_state.X_cur[:3]))} \
+                    {linalg.norm(array(dXd) - array(self.cur_state.dX_cur[:3]))} \
+                    {abs(Fd_real - self.cur_state.F_cur)} {self.check_finish_motion(Xd,dXd,Fd_real)}', end = '\r', flush = True)
+                
+
+
+    # def point_load(self, sensor_pos, init_height=0.2, needed_force=0):
+    #     self.start_vel_control.value = 0
+    #     starting_pos = sensor_pos.copy()
+    #     starting_pos[2] = init_height
+    #     self.lin(starting_pos)
+    #     self.define_new_state(sensor_pos[:3],vel_g=[0,0,0],force_g_i=needed_force,force_g_r=0)
+    #     self.start_vel_control.value = 1
+    #     while not self.check_finish_motion():
+    #         continue
+    #     self.start_vel_control.value = 0
+    #     self.define_new_state(starting_pos[:3],vel_g=[0,0,0],force_g_i=0,force_g_r=0)
+    #     self.start_vel_control.value = 1
+    #     sleep(0.1)
+    #     while not ur_robot.check_finish_motion():
+    #         continue
+
+    def test_non_force_func():
+        robot = UR5e(enable_force=0)
+        try:
+            sensor_pos = robot.basic_start()
+            print(array(robot.cur_state.X_cur))
+            robot.up(dz=-0.2)
+            print(array(robot.cur_state.X_cur))
+            robot.shutdown_robot()
+        except KeyboardInterrupt:
+            robot.rob_c.speedL([0,0,0,0,0,0], robot.MAX_OPERATIONAL_ACC, 1)
+            print('Robot is stopped')
 
 if __name__ == '__main__':
-    pass
+    robot = UR5e(enable_force=1)
+    try:
+        robot.run_env_for_lin_force()
+        sleep(2)
+        sensor_pos = robot.basic_start()
+        robot.lin_force(sensor_pos)
+        robot.shutdown_robot()
+        print("I am here")
+
+    except KeyboardInterrupt:
+            robot.rob_c.speedL([0,0,0,0,0,0], robot.MAX_OPERATIONAL_ACC, 1)
+            print('Robot is stopped')

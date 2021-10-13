@@ -1,4 +1,3 @@
-from multiprocessing.sharedctypes import Value
 from time import perf_counter, sleep
 from scipy.integrate import odeint
 from numpy import linspace
@@ -29,19 +28,31 @@ class ForcePlanner:
         self.VIR_STIFF = 400000
         self.FREQ = 500
 
-    def set_cur_state(self, robot_manager, force_sensor_data):
+    # def set_cur_state(self, robot_manager):
+    #     """Set current state from robot and sensor data
+
+    #     Args:
+    #         robot_manager (Manager().Namespace()): should consist of X goal, dX goal and F desired
+    #         force_sensor_data (int): data from force sensor
+    #     """        
+    #     self.cur_state.Xg = robot_manager.Xg
+    #     self.cur_state.dXg = robot_manager.dXg
+    #     self.cur_state.Fd_ideal = robot_manager.Fd_ideal
+    #     self.cur_state.F_cur = robot_manager.F_cur
+    #     print(self.cur_state.dXg)
+    #     print("f")
+
+    def set_cur_state(self, Xg,dXg,Fd_ideal,F_cur):
         """Set current state from robot and sensor data
 
         Args:
             robot_manager (Manager().Namespace()): should consist of X goal, dX goal and F desired
             force_sensor_data (int): data from force sensor
         """        
-        self.cur_state.Xg = robot_manager.Xg
-        self.cur_state.dXg = robot_manager.dXg
-        self.cur_state.Fd_ideal = robot_manager.Fd_ideal
-        self.cur_state.F_cur = force_sensor_data.value
-        print(self.cur_state.dXg)
-        print("f")
+        self.cur_state.Xg = Xg
+        self.cur_state.dXg = dXg
+        self.cur_state.Fd_ideal = Fd_ideal
+        self.cur_state.F_cur = F_cur
 
 
     def get_new_state(self):
@@ -50,7 +61,9 @@ class ForcePlanner:
         Returns:
             np.Array: positions in x, y and z axes
             np.Array: velosities in x, y and z axes
-        """        
+        """
+        while self.new_state.Xd is None or self.new_state.dXd is None:
+            continue
         return self.new_state.Xd, self.new_state.dXd
 
     def f_x(self, delta_prev, t , F_cur): return F_cur - self.VIR_STIFF*delta_prev
@@ -94,7 +107,7 @@ class ForcePlanner:
                 print(self.cur_state.Xg)
                 Xg_cur = self.cur_state.Xg
             t = perf_counter() - t0 
-            if t - t1 >1/self.FREQ:
+            if t - t1 >=1/self.FREQ:
                 # modify trajectory_based on force
                 delta, ddelta, __ = self.solve_diff_eq_force_planner(delta_prev)
                 # in first iteration, __delta_prev_should be defined
@@ -124,9 +137,9 @@ if __name__ == '__main__':
     robot = Manager().Namespace()
     robot.Xg = [1.0,2.0,3.0]
     robot.dXg = [0,0,0]
-    force = Value("i",30)
+    robot.F_cur = 30
     robot.Fd_ideal = 900
-    planner.set_cur_state(robot,force)
+    planner.set_cur_state(robot)
     sleep(2)
     print(planner.get_new_state())
     planner.shutdown_planner()
