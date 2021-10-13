@@ -1,8 +1,25 @@
-import matplotlib.pyplot as plt    
+import matplotlib.pyplot as plt
+
     
+class StateLogger:
+    def __init__(self) -> None:
+        self.x_act = []
+        self.x_des = []
+        self.time = []
+        self.force_data = []
+
+    def receive_data(self, x_act, x_des, time, force_data):
+        self.x_act.append(x_act)
+        self.x_des.append(x_des)
+        self.time.append(time)
+        self.force_data.append(force_data)
+
+    def draw_my_plots(self):
+        self.draw_plots(self.x_act,self.x_des,self.time,self.force_data)
+
     def draw_plots(self, x_act, x_des, time, force_data):
         fig, ax = plt.subplots(nrows=4, ncols=1)
-        plt.suptitle("Manipulator control, k = " + str(self.__k))
+        plt.suptitle("Manipulator control, k = ")
         ax[0].plot(time, [x[0] for x in x_act], label="actual x")
         ax[0].plot(time, [x[0] for x in x_des], label="needed x")
         ax[0].set_title("X coordinate")

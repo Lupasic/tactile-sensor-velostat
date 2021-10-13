@@ -6,6 +6,7 @@ import rtde_control
 import rtde_receive
 import logging
 from force_planner import ForcePlanner
+from state_logger import StateLogger
 from velocity_controller import VelocityController
 
 # https://github.com/LukeSkypewalker/URX-jupiter-notebook/blob/master/URX_notebook.ipynb
@@ -21,7 +22,7 @@ class UR5e:
         logging.basicConfig(level=logging.DEBUG)
         self.log = logging.getLogger("UR5e")
         self.log.setLevel("DEBUG")
-        self.rob_c = rtde_control.RTDEControlInterface(address)
+        self.rob_c = rtde_control.RTDEControlInterface("172.31.1.25")
         self.enable_force = enable_force
         self.fl = 0
         
@@ -91,6 +92,7 @@ class UR5e:
             self.force_planner.shutdown_planner()
         self.log.debug("Robot process was terminated")
 
+    
     def up(self, wait=True,dz=0.01):
         if wait:
             asyncc = False
@@ -98,7 +100,9 @@ class UR5e:
             asyncc = True  
         cur_pose = self.cur_state.X_cur
         cur_pose[2] += dz
+        # self.lin_force(cur_pose[:3])
         self.rob_c.moveL(cur_pose, self.MAX_LIN_VEL, self.MAX_LIN_ACC, asyncc)
+
 
     def basic_start(self, updz = 0.000):
         print("start freedrive")
@@ -130,6 +134,7 @@ class UR5e:
         self.fl = 1
 
     def lin_force(self, Xg, dXg = [0,0,0], Fd_ideal=0, Fd_real = 0):
+        state_logger = StateLogger()
         t0 = perf_counter()
         t1 = 0
         Xd = Xg
@@ -147,32 +152,20 @@ class UR5e:
                     {linalg.norm(array(Xd)-array(self.cur_state.X_cur[:3]))} \
                     {linalg.norm(array(dXd) - array(self.cur_state.dX_cur[:3]))} \
                     {abs(Fd_real - self.cur_state.F_cur)} {self.check_finish_motion(Xd,dXd,Fd_real)}', end = '\r', flush = True)
-                
+                state_logger.receive_data(self.cur_state.X_cur,Xd,t,self.cur_state.F_cur)
+                t1 = t
+        # self.rob_c.stopScript()
+        # QUITE IMPORTANT BOOLSHIT otherwise, I cannot use other commands
+        self.rob_c.reuploadScript()
+        # state_logger.draw_my_plots()
 
     def point_load(self,Xg,h_init=0.2, dXg = [0,0,0], Fd_ideal=0, Fd_real = 0):
         starting_pos = Xg.copy()
         starting_pos[2] = h_init
         self.lin(starting_pos)
         self.lin_force(Xg,dXg=dXg,Fd_ideal=Fd_ideal,Fd_real=Fd_real)
-        # self.rob_c.speedL([0,0,0.2,0,0,0],robot.MAX_OPERATIONAL_ACC,1)
-        self.up(dz=0.1)
-
-
-    # def point_load(self, sensor_pos, init_height=0.2, needed_force=0):
-    #     self.start_vel_control.value = 0
-    #     starting_pos = sensor_pos.copy()
-    #     starting_pos[2] = init_height
-    #     self.lin(starting_pos)
-    #     self.define_new_state(sensor_pos[:3],vel_g=[0,0,0],force_g_i=needed_force,force_g_r=0)
-    #     self.start_vel_control.value = 1
-    #     while not self.check_finish_motion():
-    #         continue
-    #     self.start_vel_control.value = 0
-    #     self.define_new_state(starting_pos[:3],vel_g=[0,0,0],force_g_i=0,force_g_r=0)
-    #     self.start_vel_control.value = 1
-    #     sleep(0.1)
-    #     while not ur_robot.check_finish_motion():
-    #         continue
+        # self.freedrive_transient(5)
+        self.up(dz=0.2)
 
 def test_non_force_func():
     robot = UR5e(enable_force=0)
