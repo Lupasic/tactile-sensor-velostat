@@ -149,6 +149,14 @@ class UR5e:
                     {abs(Fd_real - self.cur_state.F_cur)} {self.check_finish_motion(Xd,dXd,Fd_real)}', end = '\r', flush = True)
                 
 
+    def point_load(self,Xg,h_init=0.2, dXg = [0,0,0], Fd_ideal=0, Fd_real = 0):
+        starting_pos = Xg.copy()
+        starting_pos[2] = h_init
+        self.lin(starting_pos)
+        self.lin_force(Xg,dXg=dXg,Fd_ideal=Fd_ideal,Fd_real=Fd_real)
+        # self.rob_c.speedL([0,0,0.2,0,0,0],robot.MAX_OPERATIONAL_ACC,1)
+        self.up(dz=0.1)
+
 
     # def point_load(self, sensor_pos, init_height=0.2, needed_force=0):
     #     self.start_vel_control.value = 0
@@ -166,28 +174,30 @@ class UR5e:
     #     while not ur_robot.check_finish_motion():
     #         continue
 
-    def test_non_force_func():
-        robot = UR5e(enable_force=0)
-        try:
-            sensor_pos = robot.basic_start()
-            print(array(robot.cur_state.X_cur))
-            robot.up(dz=-0.2)
-            print(array(robot.cur_state.X_cur))
-            robot.shutdown_robot()
-        except KeyboardInterrupt:
-            robot.rob_c.speedL([0,0,0,0,0,0], robot.MAX_OPERATIONAL_ACC, 1)
-            print('Robot is stopped')
+def test_non_force_func():
+    robot = UR5e(enable_force=0)
+    try:
+        sensor_pos = robot.basic_start()
+        print(array(robot.cur_state.X_cur))
+        robot.up(dz=-0.2)
+        print(array(robot.cur_state.X_cur))
+        robot.shutdown_robot()
+    except KeyboardInterrupt:
+        robot.rob_c.speedL([0,0,0,0,0,0], robot.MAX_OPERATIONAL_ACC, 1)
+        print('Robot is stopped')
 
-if __name__ == '__main__':
+def test_point_load():
     robot = UR5e(enable_force=1)
     try:
         robot.run_env_for_lin_force()
-        sleep(2)
+        sleep(1)
         sensor_pos = robot.basic_start()
-        robot.lin_force(sensor_pos)
+        robot.point_load(sensor_pos)
         robot.shutdown_robot()
         print("I am here")
-
     except KeyboardInterrupt:
-            robot.rob_c.speedL([0,0,0,0,0,0], robot.MAX_OPERATIONAL_ACC, 1)
-            print('Robot is stopped')
+        robot.rob_c.speedL([0,0,0,0,0,0], robot.MAX_OPERATIONAL_ACC, 1)
+        print('Robot is stopped')
+
+if __name__ == '__main__':
+    test_point_load()
