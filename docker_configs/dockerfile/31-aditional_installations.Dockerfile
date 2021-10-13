@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -q -y \
     urx \
     ur_rtde \
     scipy \
+    accessify \
     pyserial && \
   rm -rf /var/lib/apt/lists/*
 

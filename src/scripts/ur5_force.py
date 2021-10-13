@@ -10,7 +10,6 @@ from scipy.integrate import odeint
 from multiprocessing import Manager, Process, Value, Array
 import rtde_control
 import rtde_receive
-import socket
 
 # https://github.com/LukeSkypewalker/URX-jupiter-notebook/blob/master/URX_notebook.ipynb
 
