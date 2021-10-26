@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -q -y \
     matplotlib \
     urx \
     ur_rtde \
+    pyqt5 \
+    sklearn \ 
     scipy \
     accessify \
     pyserial && \
