@@ -63,6 +63,8 @@ class VelocityController:
 
 
     def vel_control(self):
+        """Common P controller
+        """
         t0 = perf_counter()
         t1 = 0
         i = 0
