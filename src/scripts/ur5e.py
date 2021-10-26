@@ -1,6 +1,6 @@
 from futek_sensor import FutekSensor
 from time import perf_counter, sleep
-from numpy import e, linalg, array
+from numpy import e, linalg, array, arange
 from multiprocessing import Manager, Process
 import rtde_control
 import rtde_receive
@@ -106,7 +106,7 @@ class UR5e:
 
     def basic_start(self, updz = 0.000):
         print("start freedrive")
-        self.freedrive_transient(5)
+        self.freedrive_transient(10)
         print("end freedrive")
         sensor_init_pose = self.cur_state.X_cur
         print(sensor_init_pose)
@@ -149,10 +149,10 @@ class UR5e:
                     U = self.vel_controller.get_new_velocity()
                     self.rob_c.speedL(U,self.MAX_OPERATIONAL_ACC,1/self.FREQ)
                     # print(f'Cur state {array(self.cur_state.X_cur[2]).round(2)}, Desired state {array(Xd[2]).round(2)}')
-                    print(f'{array(self.cur_state.X_cur[2]).round(3)} {array(Xd[2]).round(3)} {self.cur_state.F_cur} check_motion \
-                        {linalg.norm(array(Xd)-array(self.cur_state.X_cur[:3]))} \
-                        {linalg.norm(array(dXd) - array(self.cur_state.dX_cur[:3]))} \
-                        {self.cur_state.F_cur} {self.check_finish_motion(Xd,dXd,Fd_real)}', end = '\r', flush = True)
+                    # print(f'{array(self.cur_state.X_cur[2]).round(3)} {array(Xd[2]).round(3)} {self.cur_state.F_cur} check_motion \
+                    #     {linalg.norm(array(Xd)-array(self.cur_state.X_cur[:3]))} \
+                    #     {linalg.norm(array(dXd) - array(self.cur_state.dX_cur[:3]))} \
+                    #     {self.cur_state.F_cur} {self.check_finish_motion(Xd,dXd,Fd_real)}', end = '\r', flush = True)
                     state_logger.receive_data(self.cur_state.X_cur,Xd,t,self.cur_state.F_cur)
                     t1 = t
             # QUITE IMPORTANT BOOLSHIT otherwise, I cannot use other commands
@@ -169,8 +169,41 @@ class UR5e:
         starting_pos[2] = h_init
         self.lin(starting_pos)
         kek = self.lin_force(Xg,dXg=dXg,Fd_ideal=Fd_ideal,Fd_real=Fd_real)
-        self.up(dz=0.2,wait=True)
+        self.up(dz=h_init,wait=True)
         kek.draw_my_plots()
+
+    def sensor_point_load(self,Xg, l, w, lp=0, wp=0, repeats=2, h_init=0.1, dXg = [0,0,0], Fd_ideal=0, Fd_real = 0):
+        # l and w in mm"
+        moving_l=l
+        l = l/1000
+        w = w/1000
+        eps = 0
+
+        if lp == 0:
+            l=0
+            eps=1
+            lp=1
+
+        if wp == 0:
+            w=0
+            eps=1
+            wp=1
+
+        starting_pos = Xg.copy()
+        starting_pos[2] = h_init
+        for i in range(repeats):
+            self.lin(starting_pos)
+            cur_points=[]
+            # eps is needed for lp or wp eual to zero, then we will do only 0 point)
+            for xx in arange(l/(2*lp),l+eps,l/lp+eps):
+                for yy in arange(w/(2*wp),w+eps,w/wp+eps):
+                    temp = array(starting_pos)-array([xx,yy]+[0,0,0,0])
+                    cur_points.append(list(temp))
+            for cur_poss in cur_points:
+                    self.lin(cur_poss)
+                    self.lin_force([cur_poss[0],cur_poss[1],Xg[2]],Fd_ideal=Fd_ideal,Fd_real=Fd_real)
+                    self.up(dz=0.01)
+                    self.lin(cur_poss)
 
 def test_non_force_func():
     robot = UR5e(enable_force=0)
@@ -190,7 +223,7 @@ def test_force_planner():
         robot.run_env_for_lin_force()
         sleep(1)
         sensor_pos = robot.cur_state.X_cur 
-        robot.point_load(sensor_pos,Fd_ideal=900,Fd_real=900)
+        robot.point_load(sensor_pos,Fd_ideal=900,Fd_real=500)
         robot.shutdown_robot()
         print("I am here")
     except KeyboardInterrupt:
@@ -203,7 +236,23 @@ def test_point_load():
         robot.run_env_for_lin_force()
         sleep(1)
         sensor_pos = robot.basic_start()
-        robot.point_load(sensor_pos,Fd_ideal=900,Fd_real=900)
+        robot.point_load(sensor_pos,Fd_ideal=150,Fd_real=100)
+        # robot.point_load(sensor_pos,Fd_ideal=500,Fd_real=400)
+        robot.shutdown_robot()
+        print("I am here")
+    except KeyboardInterrupt:
+        robot.rob_c.speedL([0,0,0,0,0,0], robot.MAX_OPERATIONAL_ACC, 1)
+        print('Robot is stopped')
+
+def test_sensor_multi_touch():
+    robot = UR5e(enable_force=1)
+    try:
+        robot.run_env_for_lin_force()
+        sleep(1)
+        sensor_pos = robot.basic_start()
+        robot.sensor_point_load(sensor_pos,15,15,lp=3,wp=3,repeats=2,Fd_ideal=200,Fd_real=110)
+        # robot.point_load(sensor_pos,Fd_ideal=150,Fd_real=100)
+        # robot.point_load(sensor_pos,Fd_ideal=500,Fd_real=400)
         robot.shutdown_robot()
         print("I am here")
     except KeyboardInterrupt:
@@ -211,5 +260,6 @@ def test_point_load():
         print('Robot is stopped')
 
 if __name__ == '__main__':
-    test_point_load()
+    # test_point_load()
+    test_sensor_multi_touch()
     # test_force_planner()

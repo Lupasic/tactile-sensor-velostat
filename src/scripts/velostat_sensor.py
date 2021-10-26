@@ -10,7 +10,7 @@ from math import exp
 class VelostatSensor(SensorBase):
     """ The class of our handmade sensor, which provide the interface for reading data from IMU and force sensors """
     time_stamp = False
-    def __init__(self, port='/dev/ttyUSB2', baudrate=115200, imu_bytes=0, force_bytes=4, debug = 0, write_to_fl=1,file_name=None,folder_name="velostat_data",calib_coeff=None):
+    def __init__(self, port='/dev/ttyUSB1', baudrate=115200, imu_bytes=0, force_bytes=4, debug = 0, write_to_fl=1,file_name=None,folder_name="velostat_data",calib_coeff=None):
         '''
         If some data is not exist (for instance we are not sending imu data), then imu_bytes should be equal to 0
         calib_coefficient can be either [[],[]] (amount of sensors), or None
@@ -39,8 +39,8 @@ class VelostatSensor(SensorBase):
                i = i + 1
             else:
                 full_array.append(d[0])
-        if self._debug:
-            print(full_array)
+        # if self._debug:
+        #     print(full_array)
         if write_to_file:
             self.write_data_to_file(full_array,msg=msg)
         return full_array
