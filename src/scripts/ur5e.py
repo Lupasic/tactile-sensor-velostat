@@ -1,6 +1,6 @@
 from futek_sensor import FutekSensor
 from time import perf_counter, sleep
-from numpy import linalg, array
+from numpy import e, linalg, array
 from multiprocessing import Manager, Process
 import rtde_control
 import rtde_receive
@@ -140,24 +140,24 @@ class UR5e:
         Xd = Xg
         dXd = dXg
         try:
-            # self.check_finish_motion(Xd,dXd,Fd_real)
             while not self.check_finish_motion(Xd,dXd,Fd_real):
                 t = perf_counter() - t0 
-                if t - t1 >1/self.FREQ:
+                if t - t1 >=1/self.FREQ:
                     self.force_planner.set_cur_state(Xg[:3],dXg,Fd_ideal,self.cur_state.F_cur)
                     Xd, dXd = self.force_planner.get_new_state()
                     self.vel_controller.set_cur_state(Xd, dXd, self.cur_state.X_cur)
                     U = self.vel_controller.get_new_velocity()
                     self.rob_c.speedL(U,self.MAX_OPERATIONAL_ACC,1/self.FREQ)
-                    # print(f'{array(self.cur_state.X_cur[2]).round(3)} {array(Xd[2]).round(3)} {self.cur_state.F_cur} check_motion \
-                    #     {linalg.norm(array(Xd)-array(self.cur_state.X_cur[:3]))} \
-                    #     {linalg.norm(array(dXd) - array(self.cur_state.dX_cur[:3]))} \
-                    #     {self.cur_state.F_cur} {self.check_finish_motion(Xd,dXd,Fd_real)}', end = '\r', flush = True)
+                    # print(f'Cur state {array(self.cur_state.X_cur[2]).round(2)}, Desired state {array(Xd[2]).round(2)}')
+                    print(f'{array(self.cur_state.X_cur[2]).round(3)} {array(Xd[2]).round(3)} {self.cur_state.F_cur} check_motion \
+                        {linalg.norm(array(Xd)-array(self.cur_state.X_cur[:3]))} \
+                        {linalg.norm(array(dXd) - array(self.cur_state.dX_cur[:3]))} \
+                        {self.cur_state.F_cur} {self.check_finish_motion(Xd,dXd,Fd_real)}', end = '\r', flush = True)
                     state_logger.receive_data(self.cur_state.X_cur,Xd,t,self.cur_state.F_cur)
                     t1 = t
-            # self.rob_c.stopScript()
             # QUITE IMPORTANT BOOLSHIT otherwise, I cannot use other commands
             self.rob_c.reuploadScript()
+            sleep(1)
             return state_logger
         except KeyboardInterrupt:
             self.rob_c.speedL([0,0,0,0,0,0], self.MAX_OPERATIONAL_ACC, 1)
@@ -169,7 +169,7 @@ class UR5e:
         starting_pos[2] = h_init
         self.lin(starting_pos)
         kek = self.lin_force(Xg,dXg=dXg,Fd_ideal=Fd_ideal,Fd_real=Fd_real)
-        self.up(dz=0.2)
+        self.up(dz=0.2,wait=True)
         kek.draw_my_plots()
 
 def test_non_force_func():
@@ -180,6 +180,19 @@ def test_non_force_func():
         robot.up(dz=-0.2)
         print(array(robot.cur_state.X_cur))
         robot.shutdown_robot()
+    except KeyboardInterrupt:
+        robot.rob_c.speedL([0,0,0,0,0,0], robot.MAX_OPERATIONAL_ACC, 1)
+        print('Robot is stopped')
+
+def test_force_planner():
+    robot = UR5e(enable_force=1)
+    try:
+        robot.run_env_for_lin_force()
+        sleep(1)
+        sensor_pos = robot.cur_state.X_cur 
+        robot.point_load(sensor_pos,Fd_ideal=900,Fd_real=900)
+        robot.shutdown_robot()
+        print("I am here")
     except KeyboardInterrupt:
         robot.rob_c.speedL([0,0,0,0,0,0], robot.MAX_OPERATIONAL_ACC, 1)
         print('Robot is stopped')
@@ -199,3 +212,4 @@ def test_point_load():
 
 if __name__ == '__main__':
     test_point_load()
+    # test_force_planner()

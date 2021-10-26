@@ -1,6 +1,6 @@
 from time import perf_counter, sleep
 from scipy.integrate import odeint
-from numpy import linspace, array, linalg
+from numpy import linspace, array, linalg, isnan
 from multiprocessing import Manager, Process
 import logging
 
@@ -25,7 +25,7 @@ class ForcePlanner:
         self.new_state.dXd = None
 
     def init_constants(self):
-        self.VIR_STIFF = 40000
+        self.VIR_STIFF = 400000
         self.FREQ = 500
 
     # def set_cur_state(self, robot_manager):
@@ -49,10 +49,13 @@ class ForcePlanner:
             robot_manager (Manager().Namespace()): should consist of X goal, dX goal and F desired
             force_sensor_data (int): data from force sensor
         """        
-        self.cur_state.Xg = Xg
         self.cur_state.dXg = dXg
         self.cur_state.Fd_ideal = Fd_ideal
         self.cur_state.F_cur = F_cur
+        if Xg is not None and Fd_ideal is not None:
+            # Xg2 = Xg[2]
+            Xg2 = Xg[2] - Fd_ideal/self.VIR_STIFF
+            self.cur_state.Xg = [Xg[0],Xg[1], Xg2]
 
 
     def get_new_state(self):
@@ -77,6 +80,8 @@ class ForcePlanner:
         t0 = perf_counter()
         t = linspace(0,1/self.FREQ,3)
         delta = odeint(self.f_x, delta_prev, t, args = (self.cur_state.F_cur,))[-1][0]
+        if isnan(delta):
+            delta=0
         ddelta = self.cur_state.F_cur - self.VIR_STIFF * delta
         ttt = perf_counter() - t0
         return delta, ddelta, ttt       
@@ -100,24 +105,27 @@ class ForcePlanner:
             # print(Xg_cur)
 
             # if linalg.norm(array(Xg_cur) - array(self.cur_state.Xg)) <= e or fl == 0:
-            if fl == 0:
-                self.log.info(f' New point received {self.cur_state.Xg}')
-                # modify z axis
-                Xg2 = self.cur_state.Xg[2] - self.cur_state.Fd_ideal/self.VIR_STIFF
-                print(f'Inside {Xg2} {self.cur_state.Xg[2]}')
-                self.cur_state.Xg = [self.cur_state.Xg[0],self.cur_state.Xg[1], Xg2]
-                Xg_cur = self.cur_state.Xg
-                fl = 1
+            # if fl == 0:
+            #     self.log.info(f' New point received {self.cur_state.Xg}')
+            #     # modify z axis
+            #     # Xg2 = self.cur_state.Xg[2] - self.cur_state.Fd_ideal/self.VIR_STIFF
+            #     # print(f'Inside {Xg2} {self.cur_state.Xg[2]}')
+            #     # self.cur_state.Xg = [self.cur_state.Xg[0],self.cur_state.Xg[1], Xg2]
+            #     # Xg_cur = self.cur_state.Xg
+            #     fl = 1
             t = perf_counter() - t0 
             if t - t1 >=1/self.FREQ:
                 # modify trajectory_based on force
                 delta, ddelta, __ = self.solve_diff_eq_force_planner(delta_prev)
                 # in first iteration, __delta_prev_should be defined
-                print(f' {delta} {delta_prev}',flush=True, end = '\r')
+                # print(f' {delta} {delta_prev}',flush=True, end = '\r')
+                # print(f'Delta {delta} Xg_cur {self.cur_state.Xg[2]}')
                 delta_prev = delta
+
                 # modify X_d
                 self.new_state.Xd = [self.cur_state.Xg[0], self.cur_state.Xg[1], self.cur_state.Xg[2] + delta]
                 self.new_state.dXd = [self.cur_state.dXg[0], self.cur_state.dXg[1], self.cur_state.dXg[2] + ddelta]
+                
                 t1 = t
 
     def run_planner(self):
