@@ -1,19 +1,20 @@
-import logging
+
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import normalize
 from numpy import array
+from setup_logger import logger
 
 class StateLogger:
     def __init__(self) -> None:
-        self.log = logging.getLogger("StateLogger")
-        self.log.setLevel("INFO")
         self.x_act = []
         self.x_des = []
         self.time = []
         self.force_data = []
+        logger.info("All data meow")
 
 
     def read_data_from_futek_or_velostat(self, folder_name, pure_file_name):
+        logger.debug("I took %s folder with %s name",folder_name, pure_file_name)
         t = []
         data = []
         text = []
@@ -35,7 +36,7 @@ class StateLogger:
     def read_all_data_for_drawing_froce_comp(self, name):
         t_vel, data_vel, text_vel = self.read_data_from_futek_or_velostat("velostat_data",name)
         t_futek, data_futek, text_futek =self.read_data_from_futek_or_velostat("futek_data",name)
-        print(len(t_vel))
+        logger.debug(len(t_vel))
         return [[t_vel,t_futek],[data_vel,data_futek],[text_vel,text_futek]]
 
     def data_preprocessing_for_force_comparison(self, whole_list):
@@ -120,6 +121,7 @@ class StateLogger:
 
 if __name__ == '__main__':
     state_logger = StateLogger()
+    logger.debug("kek")
     p = state_logger.read_all_data_for_drawing_froce_comp("sensor_1_touch_small_pike")
     p = state_logger.data_preprocessing_for_force_comparison(p)
     state_logger.draw_force_comparison(p)
