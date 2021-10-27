@@ -40,7 +40,8 @@ class FutekSensor(SensorBase):
             if self._debug:
                 print(self.raw2F(reading))
             if write_to_file:
-                self.write_data_to_file(self.raw2F(reading), msg=msg)
+                self.write_data_to_file(reading, msg=msg)
+                # self.write_data_to_file(self.raw2F(reading), msg=msg)
             return reading
         except ValueError:
             return -1

@@ -287,14 +287,15 @@ class UR5e:
             self.lin(starting_pos)
             cur_points=[]
             # eps is needed for lp or wp eual to zero, then we will do only 0 point)
-            for xx in arange(l/(2*lp),l+eps,l/lp+eps):
-                for yy in arange(w/(2*wp),w+eps,w/wp+eps):
+            for xx in arange(w/(2*wp),(w)+eps,w/wp+eps):
+                for yy in arange(l/(2*lp),(l)+eps,l/lp+eps):
                     temp = array(starting_pos)-array([xx,yy]+[0,0,0,0])
                     cur_points.append(list(temp))
             for cur_poss in cur_points:
                     self.lin(cur_poss)
-                    self.lin_force([cur_poss[0],cur_poss[1],Xg[2]],Fd_ideal=Fd_ideal,Fd_real=Fd_real)
+                    kek = self.lin_force([cur_poss[0],cur_poss[1],Xg[2]],Fd_ideal=Fd_ideal,Fd_real=Fd_real)
                     self.up(dz=0.01)
+                    kek.draw_my_plots()
                     self.lin(cur_poss)
 
 def test_non_force_func():
@@ -342,7 +343,7 @@ def test_sensor_multi_touch():
         robot.run_env_for_lin_force()
         sleep(1)
         sensor_pos = robot.basic_start()
-        robot.sensor_point_load(sensor_pos,15,15,lp=3,wp=3,repeats=2,Fd_ideal=200,Fd_real=110)
+        robot.sensor_point_load(sensor_pos,17,14,lp=3,wp=3,repeats=2,Fd_ideal=200,Fd_real=110)
         # robot.point_load(sensor_pos,Fd_ideal=150,Fd_real=100)
         # robot.point_load(sensor_pos,Fd_ideal=500,Fd_real=400)
         robot.shutdown_robot()

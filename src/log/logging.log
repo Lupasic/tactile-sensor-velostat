@@ -1,48 +1,5 @@
-2021-10-27 05:13:39,138 - (state_logger.py).__init__(19) - [INFO]: All data meow
-2021-10-27 05:13:39,138 - (state_logger.py).<module>(130) - [DEBUG]: kek
-2021-10-27 05:13:39,138 - (state_logger.py).read_data_from_futek_or_velostat(23) - [DEBUG]: I took velostat_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:13:39,141 - (state_logger.py).read_data_from_futek_or_velostat(23) - [DEBUG]: I took futek_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:13:39,167 - (state_logger.py).read_all_data_for_drawing_froce_comp(45) - [DEBUG]: 2157
-2021-10-27 05:16:32,452 - (state_logger.py).__init__(19) - [INFO]: All data meow
-2021-10-27 05:16:32,452 - (state_logger.py).<module>(130) - [DEBUG]: kek
-2021-10-27 05:16:32,452 - (state_logger.py).read_data_from_futek_or_velostat(23) - [DEBUG]: I took velostat_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:16:32,456 - (state_logger.py).read_data_from_futek_or_velostat(23) - [DEBUG]: I took futek_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:16:32,475 - (state_logger.py).read_all_data_for_drawing_froce_comp(45) - [DEBUG]: 2157
-2021-10-27 05:24:49,684 - (state_logger.py).__init__(15) - [INFO]: All data meow
-2021-10-27 05:25:06,048 - (state_logger.py).__init__(15) - [INFO]: All data meow
-2021-10-27 05:25:06,048 - (state_logger.py).<module>(126) - [DEBUG]: kek
-2021-10-27 05:25:06,048 - (state_logger.py).read_data_from_futek_or_velostat(19) - [DEBUG]: I took velostat_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:25:06,051 - (state_logger.py).read_data_from_futek_or_velostat(19) - [DEBUG]: I took futek_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:25:06,071 - (state_logger.py).read_all_data_for_drawing_froce_comp(41) - [DEBUG]: 2157
-2021-10-27 05:27:43,563 - (state_logger.py).__init__(13) - [INFO]: All data meow
-2021-10-27 05:27:43,563 - (state_logger.py).<module>(124) - [DEBUG]: kek
-2021-10-27 05:27:43,563 - (state_logger.py).read_data_from_futek_or_velostat(17) - [DEBUG]: I took velostat_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:27:43,566 - (state_logger.py).read_data_from_futek_or_velostat(17) - [DEBUG]: I took futek_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:27:43,586 - (state_logger.py).read_all_data_for_drawing_froce_comp(39) - [DEBUG]: 2157
-2021-10-27 05:27:54,069 - (state_logger.py).__init__(13) - [INFO]: All data meow
-2021-10-27 05:27:54,069 - (state_logger.py).<module>(124) - [DEBUG]: kek
-2021-10-27 05:27:54,069 - (state_logger.py).read_data_from_futek_or_velostat(17) - [DEBUG]: I took velostat_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:27:54,072 - (state_logger.py).read_data_from_futek_or_velostat(17) - [DEBUG]: I took futek_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:27:54,094 - (state_logger.py).read_all_data_for_drawing_froce_comp(39) - [DEBUG]: 2157
-2021-10-27 05:28:04,797 - (state_logger.py).__init__(13) - [INFO]: All data meow
-2021-10-27 05:28:04,798 - (state_logger.py).<module>(124) - [DEBUG]: kek
-2021-10-27 05:28:04,798 - (state_logger.py).read_data_from_futek_or_velostat(17) - [DEBUG]: I took velostat_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:28:04,801 - (state_logger.py).read_data_from_futek_or_velostat(17) - [DEBUG]: I took futek_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:28:04,823 - (state_logger.py).read_all_data_for_drawing_froce_comp(39) - [DEBUG]: 2157
-2021-10-27 05:34:38,377 - (state_logger.py).__init__(13) - [INFO]: All data meow
-2021-10-27 05:34:38,377 - (state_logger.py).<module>(124) - [DEBUG]: kek
-2021-10-27 05:34:38,377 - (state_logger.py).read_data_from_futek_or_velostat(17) - [DEBUG]: I took velostat_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:34:38,380 - (state_logger.py).read_data_from_futek_or_velostat(17) - [DEBUG]: I took futek_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:34:38,400 - (state_logger.py).read_all_data_for_drawing_froce_comp(39) - [DEBUG]: 2157
-2021-10-27 05:37:05,226 - (setup_logger.py).<module>(10) - [INFO]: Set logger simpleExample
-2021-10-27 05:37:05,226 - (state_logger.py).__init__(13) - [INFO]: All data meow
-2021-10-27 05:37:05,226 - (state_logger.py).<module>(124) - [DEBUG]: kek
-2021-10-27 05:37:05,226 - (state_logger.py).read_data_from_futek_or_velostat(17) - [DEBUG]: I took velostat_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:37:05,230 - (state_logger.py).read_data_from_futek_or_velostat(17) - [DEBUG]: I took futek_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:37:05,253 - (state_logger.py).read_all_data_for_drawing_froce_comp(39) - [DEBUG]: 2157
-2021-10-27 05:37:23,840 - (setup_logger.py).<module>(10) - [INFO]: Set logger simpleExample
-2021-10-27 05:37:23,840 - (state_logger.py).__init__(13) - [INFO]: All data meow
-2021-10-27 05:37:23,841 - (state_logger.py).<module>(124) - [DEBUG]: kek
-2021-10-27 05:37:23,841 - (state_logger.py).read_data_from_futek_or_velostat(17) - [DEBUG]: I took velostat_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:37:23,845 - (state_logger.py).read_data_from_futek_or_velostat(17) - [DEBUG]: I took futek_data folder with sensor_1_touch_small_pike name
-2021-10-27 05:37:23,866 - (state_logger.py).read_all_data_for_drawing_froce_comp(39) - [DEBUG]: 2157
+14:49:14.519 - (setup_logger.py).<module>(10) - [INFO]: Set logger simpleExample
+14:49:14.529 - (state_logger.py).<module>(207) - [DEBUG]: kek
+14:49:14.529 - (state_logger.py).read_data_from_futek_or_velostat(26) - [DEBUG]: I took velostat_data folder with kek name
+14:49:14.543 - (state_logger.py).read_data_from_futek_or_velostat(26) - [DEBUG]: I took futek_data folder with kek name
+14:49:14.565 - (state_logger.py).read_all_data_for_drawing_froce_comp(50) - [DEBUG]: 11974
