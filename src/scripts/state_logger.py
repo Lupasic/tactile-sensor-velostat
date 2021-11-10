@@ -63,7 +63,7 @@ class StateLogger:
 
         # inverse and normalize velostat data
         # when I put 10 gramms on the sensor
-        VELOSTAT_THRESHOLD = 1100
+        VELOSTAT_THRESHOLD = 1300
         temp = array(whole_list[1][0])
         i = 0
         for el in temp:
@@ -104,7 +104,7 @@ class StateLogger:
         plt.subplot(2, 2, 4)
         plt.plot(peaks4, x[peaks4], "xk"); plt.plot(x); plt.legend(['threshold'])
         plt.show()
-        p = input("Choose the best solution, start from 0 \n")
+        # p = input("Choose the best solution, start from 0 \n")
         return peaks_val[int(p)]
 
     def bar_chart_3d(self,peaks=None):
@@ -205,8 +205,8 @@ class StateLogger:
 if __name__ == '__main__':
     state_logger = StateLogger()
     logger.debug("kek")
-    p = state_logger.read_all_data_for_drawing_froce_comp("kek")
+    p = state_logger.read_all_data_for_drawing_froce_comp("smallest_pike")
     p = state_logger.data_preprocessing_for_force_comparison(p)
     # velostat_peaks, futek_peaks = state_logger.find_pikes_from_velostat_and_futek(p)
-    state_logger.bar_chart_3d()
-    # state_logger.draw_force_comparison(p)
+    # state_logger.bar_chart_3d()
+    state_logger.draw_force_comparison(p)

@@ -17,8 +17,8 @@ def starting_experiment_time():
 
 
 def sensor_multitouch():
-    robot = UR5e(enable_force=1,file_name="kek")
-    velostat = VelostatSensor(debug=False,file_name="kek")
+    robot = UR5e(enable_force=1,file_name="smallest_pike")
+    velostat = VelostatSensor(debug=False,file_name="smallest_pike")
     process_velostat = Process(target=read_data_from_velostat,args=(velostat,))
     process_velostat.start()
     try:
@@ -26,7 +26,7 @@ def sensor_multitouch():
         sleep(1)
         sensor_pos = robot.basic_start()
         starting_experiment_time()
-        robot.sensor_point_load(sensor_pos,15,15,lp=3,wp=3,repeats=1,Fd_ideal=100,Fd_real=100)
+        robot.sensor_point_load(sensor_pos,15,15,lp=3,wp=3,repeats=1,Fd_ideal=28,Fd_real=28)
         robot.shutdown_robot()
         print("I am here")
         process_velostat.terminate()

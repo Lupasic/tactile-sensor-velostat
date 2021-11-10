@@ -39,9 +39,10 @@ class FutekSensor(SensorBase):
             self.cur_timestamp = datetime.datetime.now().timestamp()
             if self._debug:
                 print(self.raw2F(reading))
+                # print(reading)
             if write_to_file:
-                self.write_data_to_file(reading, msg=msg)
-                # self.write_data_to_file(self.raw2F(reading), msg=msg)
+                # self.write_data_to_file(reading, msg=msg)
+                self.write_data_to_file(self.raw2F(reading), msg=msg)
             return reading
         except ValueError:
             return -1
@@ -54,18 +55,20 @@ class FutekSensor(SensorBase):
         """ Linear model Poly1:
         fitpoints(x) = p1*x + p2
      Coefficients (with 95% confidence bounds):
-       p1 =    0.006321  (0.006239, 0.006403)
-       p2 =     -0.1972  (-0.2043, -0.19)
+       p1 =    0.006325  (0.006255, 0.006396)
+       p2 =    -0.03719  (-0.04176, -0.03261)
         """
-        p1 = 0.006321
-        p2 = -0.1978
+        p1 = 0.006325
+        p2 = -0.03719
         g = 9.8 
-        F = round(g* (p1*raw_data + p2),2)
+        # compensation coeff (when we flip our sensor, data are changing)
+        comp = 0.36
+        F = round(g* (p1*raw_data + p2),2) + comp
         return F
 
     def F2raw(self, F):
-        p1 = 0.006321
-        p2 = -0.1972
+        p1 = 0.006325
+        p2 = -0.03719
         g = 9.8
         return round((F/g - p2)/p1,2)
 

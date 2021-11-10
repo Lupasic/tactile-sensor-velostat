@@ -25,7 +25,7 @@ class VelocityController:
 
     def init_constants(self):
         self.FREQ = 500
-        self.K = 0.99
+        self.K = 0.4
 
     # def set_cur_state(self, planner_data, robot_data):
     #     """Set current state from robot and sensor data

@@ -25,7 +25,7 @@ class ForcePlanner:
         self.new_state.dXd = None
 
     def init_constants(self):
-        self.VIR_STIFF = 100000
+        self.VIR_STIFF = 1e+3
         self.FREQ = 500
 
     # def set_cur_state(self, robot_manager):
@@ -78,7 +78,7 @@ class ForcePlanner:
             delta_prev (double): Consist of solution for Z axis from previous state
         """
         t0 = perf_counter()
-        t = linspace(0,1/self.FREQ,3)
+        t = linspace(0,1/self.FREQ,2)
         delta = odeint(self.f_x, delta_prev, t, args = (self.cur_state.F_cur,))[-1][0]
         if isnan(delta):
             delta=0
@@ -103,16 +103,6 @@ class ForcePlanner:
                 or self.cur_state.Fd_ideal == None or self.cur_state.F_cur == None:
                 continue
             # print(Xg_cur)
-
-            # if linalg.norm(array(Xg_cur) - array(self.cur_state.Xg)) <= e or fl == 0:
-            # if fl == 0:
-            #     self.log.info(f' New point received {self.cur_state.Xg}')
-            #     # modify z axis
-            #     # Xg2 = self.cur_state.Xg[2] - self.cur_state.Fd_ideal/self.VIR_STIFF
-            #     # print(f'Inside {Xg2} {self.cur_state.Xg[2]}')
-            #     # self.cur_state.Xg = [self.cur_state.Xg[0],self.cur_state.Xg[1], Xg2]
-            #     # Xg_cur = self.cur_state.Xg
-            #     fl = 1
             t = perf_counter() - t0 
             if t - t1 >=1/self.FREQ:
                 # modify trajectory_based on force
