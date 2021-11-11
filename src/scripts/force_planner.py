@@ -26,8 +26,8 @@ class ForcePlanner:
         self.new_state.dXd = None
 
     def init_constants(self):
-        self.VIR_STIFF = 7e+3
-        self.FREQ = 250
+        self.VIR_STIFF = 7.5e+3
+        self.FREQ = 450
 
     # def set_cur_state(self, robot_manager):
     #     """Set current state from robot and sensor data

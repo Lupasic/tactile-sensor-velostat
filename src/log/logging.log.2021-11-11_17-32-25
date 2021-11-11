@@ -1,0 +1,5 @@
+17:32:25.900 - (setup_logger.py).<module>(10) - [INFO]: Set logger simpleExample
+17:32:25.909 - (state_logger.py).<module>(234) - [DEBUG]: kek
+17:32:25.910 - (state_logger.py).read_data_from_futek_or_velostat(28) - [DEBUG]: I took velostat_data folder with pike4_sensor1_exp3 name
+17:32:25.920 - (state_logger.py).read_data_from_futek_or_velostat(28) - [DEBUG]: I took futek_data folder with pike4_sensor1_exp3 name
+17:32:25.935 - (state_logger.py).read_all_data_for_drawing_froce_comp(52) - [DEBUG]: 8527

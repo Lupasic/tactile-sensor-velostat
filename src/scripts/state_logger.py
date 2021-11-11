@@ -20,7 +20,7 @@ class StateLogger:
 
     def read_data_from_futek_or_velostat(self, folder_name, pure_file_name): 
         starting_exp_timestamp = 0.0
-        starting_exp_timestamp_file_path = "/home/app/tactile_sensor_velostat/experimental_data/starting_experiment.txt"
+        starting_exp_timestamp_file_path = "/home/app/tactile_sensor_velostat/experimental_data/starting_experiment_"+pure_file_name+".txt"
         if isfile(starting_exp_timestamp_file_path):
             tex_file = open(starting_exp_timestamp_file_path,mode="r")
             starting_exp_timestamp = float(tex_file.readline())
@@ -60,6 +60,7 @@ class StateLogger:
             if el < 0:
                 temp[i] = 0
             i = i+1
+        
         norm_futek = normalize([temp],norm="max")
         whole_list[1][1]=norm_futek[0]
 
@@ -183,41 +184,41 @@ class StateLogger:
         ax[0, 0].set_title("Position, X axis")
         ax[0, 0].set_xlabel("time, sec")
         ax[0, 0].set_ylabel("position, m")
-        ax[0, 0].legend(loc="upper right")
+        ax[0, 0].legend(loc="lower right")
 
         ax[1,0].plot(time, [x[1] for x in x_act], label="actual y")
         ax[1,0].plot(time, [x[1] for x in x_des], label="needed y")
         ax[1,0].set_title("Position, Y axis")
         ax[1,0].set_xlabel("time, sec")
         ax[1,0].set_ylabel("position, m")
-        ax[1,0].legend(loc="upper right")
+        ax[1,0].legend(loc="lower right")
 
         ax[2,0].plot(time, [x[2] for x in x_act], label="actual z")
         ax[2,0].plot(time, [x[2] for x in x_des], label="needed z")
         ax[2,0].set_title("Position, Z axis")
         ax[2,0].set_xlabel("time, sec")
         ax[2,0].set_ylabel("position, m")
-        ax[2,0].legend(loc="upper right")
+        ax[2,0].legend(loc="lower right")
 
         ax[3,0].plot(time, force_data, label="cur_force")
         ax[3,0].set_title("Force data")
         ax[3,0].set_xlabel("time, sec")
         ax[3,0].set_ylabel("force, N")
-        ax[3,0].legend(loc="upper right")
+        ax[3,0].legend(loc="lower right")
 
         ax[0, 1].plot(time, [x[0] for x in dx_act], label="actual x")
         ax[0, 1].plot(time, [x[0] for x in dx_des], label="needed x")
         ax[0, 1].set_title("Velocity, X axis")
         ax[0, 1].set_xlabel("time, sec")
         ax[0, 1].set_ylabel("velocity, m/s")
-        ax[0, 1].legend(loc="upper left")
+        ax[0, 1].legend(loc="lower right")
 
         ax[1,1].plot(time, [x[1] for x in dx_act], label="actual y")
         ax[1,1].plot(time, [x[1] for x in dx_des], label="needed y")
         ax[1,1].set_title("Velocity, Y axis")
         ax[1,1].set_xlabel("time, sec")
         ax[1,1].set_ylabel("velocity, m/s")
-        ax[1,1].legend(loc="upper left")
+        ax[1,1].legend(loc="lower right")
 
         ax[2,1].plot(time, [x[2] for x in dx_act], label="actual z")
         ax[2,1].plot(time, [x[2] for x in dx_des], label="needed z")
@@ -225,13 +226,13 @@ class StateLogger:
         ax[2,1].set_title("Velocity, Z axis")
         ax[2,1].set_xlabel("time, sec")
         ax[2,1].set_ylabel("velocity, m/s")
-        ax[2,1].legend(loc="upper left")
+        ax[2,1].legend(loc="lower right")
         plt.show()
 
 if __name__ == '__main__':
     state_logger = StateLogger()
     logger.debug("kek")
-    p = state_logger.read_all_data_for_drawing_froce_comp("smallest_pike")
+    p = state_logger.read_all_data_for_drawing_froce_comp("pike4_sensor1_exp1")
     p = state_logger.data_preprocessing_for_force_comparison(p)
     # velostat_peaks, futek_peaks = state_logger.find_pikes_from_velostat_and_futek(p)
     # state_logger.bar_chart_3d()

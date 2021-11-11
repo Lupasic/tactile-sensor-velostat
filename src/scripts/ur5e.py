@@ -45,7 +45,7 @@ class UR5e:
         self.cur_state.F_cur = None
 
     def init_constants(self):
-        self.FREQ = 250
+        self.FREQ = 450
         self.MAX_OPERATIONAL_ACC = 0.3
         self.MAX_LIN_ACC = 0.5
         self.MAX_LIN_VEL = 0.5
@@ -115,6 +115,8 @@ class UR5e:
         if self.fl:
             self.vel_controller.shutdown_controller()
             self.force_planner.shutdown_planner()
+        self.rob_c.stopScript()
+        self.rob_c.disconnect()
         self.log.debug("Robot process was terminated")
 
     
@@ -174,7 +176,7 @@ class UR5e:
         eps = 1e-3
         a = linalg.norm(array(Xd[:3])-array(self.cur_state.X_cur[:3])) <= eps
         b = linalg.norm(array(dXd[:3]) - array(self.cur_state.dX_cur[:3])) <= eps
-        c = abs(Fd_real - self.cur_state.F_cur) <= 0.03
+        c = abs(Fd_real - self.cur_state.F_cur) <= 0.05 or self.cur_state.F_cur > Fd_real
         if  a and b and c:
             return True
         else:
@@ -219,8 +221,8 @@ class UR5e:
                     {linalg.norm(array(Xd)-array(self.cur_state.X_cur[:3]))} \
                     {linalg.norm(array(dXd) - array(self.cur_state.dX_cur[:3]))} \
                     {self.cur_state.F_cur} {self.check_finish_motion(Xd,dXd,Fd_real)}', end = '\r', flush = True)
-                # if self.cur_state.F_cur >= 0.4:   
-                state_logger.receive_data(self.cur_state.X_cur,Xd,t,self.cur_state.F_cur, self.cur_state.dX_cur, U[:3])
+                if self.cur_state.F_cur >= 0.4:   
+                    state_logger.receive_data(self.cur_state.X_cur,Xd,t,self.cur_state.F_cur, self.cur_state.dX_cur, U[:3])
                 end = perf_counter()
                 duration = end - start
                 if duration < 1/self.FREQ:
@@ -297,7 +299,7 @@ class UR5e:
                     self.lin(cur_poss)
                     kek = self.lin_force([cur_poss[0],cur_poss[1],Xg[2]],Fd_ideal=Fd_ideal,Fd_real=Fd_real)
                     self.up(dz=0.01)
-                    kek.draw_my_plots()
+                    # kek.draw_my_plots()
                     self.lin(cur_poss)
 
 def test_non_force_func():
@@ -331,7 +333,7 @@ def test_point_load():
         robot.run_env_for_lin_force()
         sleep(1)
         sensor_pos = robot.basic_start()
-        robot.point_load(sensor_pos,Fd_ideal=50,Fd_real=5000,h_init=0.08)
+        robot.point_load(sensor_pos,Fd_ideal=10,Fd_real=9.5,h_init=0.08)
         robot.shutdown_robot()
         print("I am here")
     except KeyboardInterrupt:
