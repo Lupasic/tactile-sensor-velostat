@@ -45,8 +45,8 @@ class UR5e:
         self.cur_state.F_cur = None
 
     def init_constants(self):
-        self.FREQ = 500
-        self.MAX_OPERATIONAL_ACC = 0.4
+        self.FREQ = 250
+        self.MAX_OPERATIONAL_ACC = 0.3
         self.MAX_LIN_ACC = 0.5
         self.MAX_LIN_VEL = 0.5
 
@@ -204,26 +204,27 @@ class UR5e:
         """
         state_logger = StateLogger()
         t0 = perf_counter()
-        t1 = 0
         Xd = Xg
         dXd = dXg
         try:
             while not self.check_finish_motion(Xd,dXd,Fd_real):
                 t = perf_counter() - t0 
-                if t - t1 >=1/self.FREQ:
-                    self.force_planner.set_cur_state(Xg[:3],dXg,Fd_ideal,self.cur_state.F_cur)
-                    Xd, dXd = self.force_planner.get_new_state()
-                    self.vel_controller.set_cur_state(Xd, dXd, self.cur_state.X_cur)
-                    U = self.vel_controller.get_new_velocity()
-                    self.rob_c.speedL(U,self.MAX_OPERATIONAL_ACC,1/self.FREQ)
-                    # print(f'Cur state {array(self.cur_state.X_cur[2]).round(2)}, Desired state {array(Xd[2]).round(2)}')
-                    # print(f'{array(self.cur_state.X_cur[2]).round(3)} {array(Xd[2]).round(3)} {self.cur_state.F_cur} check_motion \
-                    #     {linalg.norm(array(Xd)-array(self.cur_state.X_cur[:3]))} \
-                    #     {linalg.norm(array(dXd) - array(self.cur_state.dX_cur[:3]))} \
-                    #     {self.cur_state.F_cur} {self.check_finish_motion(Xd,dXd,Fd_real)}', end = '\r', flush = True)
-                    # if self.cur_state.F_cur >= 0.04:
-                    state_logger.receive_data(self.cur_state.X_cur,Xd,t,self.cur_state.F_cur)
-                    t1 = t
+                start = perf_counter()
+                self.force_planner.set_cur_state(Xg[:3],dXg,Fd_ideal,self.cur_state.F_cur)
+                Xd, dXd = self.force_planner.get_new_state()
+                self.vel_controller.set_cur_state(Xd, dXd, self.cur_state.X_cur)
+                U = self.vel_controller.get_new_velocity()
+                self.rob_c.speedL(U,self.MAX_OPERATIONAL_ACC,1/self.FREQ)
+                print(f'{array(self.cur_state.X_cur[2]).round(3)} {array(Xd[2]).round(3)} {self.cur_state.F_cur} check_motion \
+                    {linalg.norm(array(Xd)-array(self.cur_state.X_cur[:3]))} \
+                    {linalg.norm(array(dXd) - array(self.cur_state.dX_cur[:3]))} \
+                    {self.cur_state.F_cur} {self.check_finish_motion(Xd,dXd,Fd_real)}', end = '\r', flush = True)
+                # if self.cur_state.F_cur >= 0.4:   
+                state_logger.receive_data(self.cur_state.X_cur,Xd,t,self.cur_state.F_cur, self.cur_state.dX_cur, U[:3])
+                end = perf_counter()
+                duration = end - start
+                if duration < 1/self.FREQ:
+                    sleep(1/self.FREQ - duration)
             # QUITE IMPORTANT BOOLSHIT otherwise, I cannot use other commands
             self.rob_c.reuploadScript()
             sleep(1)
@@ -330,7 +331,7 @@ def test_point_load():
         robot.run_env_for_lin_force()
         sleep(1)
         sensor_pos = robot.basic_start()
-        robot.point_load(sensor_pos,Fd_ideal=20,Fd_real=5000,h_init=0.08)
+        robot.point_load(sensor_pos,Fd_ideal=50,Fd_real=5000,h_init=0.08)
         robot.shutdown_robot()
         print("I am here")
     except KeyboardInterrupt:

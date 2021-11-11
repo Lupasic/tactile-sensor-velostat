@@ -65,18 +65,11 @@ class VelocityController:
     def vel_control(self):
         """Common P controller
         """
-        t0 = perf_counter()
-        t1 = 0
-        i = 0
-        time = []
         while True:
             if self.cur_state.dXd == None or self.cur_state.Xd == None \
                 or self.cur_state.X_cur == None:
                 continue
-            t = perf_counter() - t0
             self.new_state.U = list(array(self.cur_state.dXd) + self.K*(array(self.cur_state.Xd) - array(self.cur_state.X_cur[:3])))
-            if t -t1 < 1/self.FREQ:
-                sleep(1/self.FREQ - (t -t1))
             
 
     def run_controller(self):

@@ -1,4 +1,5 @@
 from time import perf_counter, sleep
+from numpy import exp
 from scipy.integrate import odeint
 from numpy import linspace, array, linalg, isnan
 from multiprocessing import Manager, Process
@@ -25,8 +26,8 @@ class ForcePlanner:
         self.new_state.dXd = None
 
     def init_constants(self):
-        self.VIR_STIFF = 1e+3
-        self.FREQ = 500
+        self.VIR_STIFF = 7e+3
+        self.FREQ = 250
 
     # def set_cur_state(self, robot_manager):
     #     """Set current state from robot and sensor data
@@ -54,7 +55,7 @@ class ForcePlanner:
         self.cur_state.F_cur = F_cur
         if Xg is not None and Fd_ideal is not None:
             # Xg2 = Xg[2]
-            Xg2 = Xg[2] - Fd_ideal/self.VIR_STIFF
+            Xg2 = Xg[2] - (Fd_ideal/self.VIR_STIFF)
             self.cur_state.Xg = [Xg[0],Xg[1], Xg2]
 
 
@@ -78,10 +79,15 @@ class ForcePlanner:
             delta_prev (double): Consist of solution for Z axis from previous state
         """
         t0 = perf_counter()
-        t = linspace(0,1/self.FREQ,2)
-        delta = odeint(self.f_x, delta_prev, t, args = (self.cur_state.F_cur,))[-1][0]
-        if isnan(delta):
-            delta=0
+        # t = linspace(0,1/self.FREQ,5)
+        # delta_num = odeint(self.f_x, delta_prev, t, args = (self.cur_state.F_cur,))[-1][0]
+        t_f = 1/self.FREQ
+        C1 = -((self.VIR_STIFF*delta_prev) - self.cur_state.F_cur)/exp(-self.VIR_STIFF*(0))
+        delta_anal = (self.cur_state.F_cur - C1*exp(-self.VIR_STIFF*t_f))/self.VIR_STIFF
+        # print(f'Delta numerical {delta_num}, delta analytical {delta_anal} ')
+        # if isnan(delta_num):
+        #     delta=0
+        delta = delta_anal
         ddelta = self.cur_state.F_cur - self.VIR_STIFF * delta
         ttt = perf_counter() - t0
         return delta, ddelta, ttt       
