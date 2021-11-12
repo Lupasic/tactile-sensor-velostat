@@ -36,8 +36,8 @@ def sensor_multitouch(exp_name):
         print('Robot is stopped')
 
 def multiple_exp_sensor_multitouch(fl=0):
-    sensor_pos = [-0.7021411229811721, 0.21766862016381397, 0.06957241936962599, 3.14, 0.1, 0]
-    for exp_name in ["pike4_sensor1_exp3"]:
+    sensor_pos = [-0.7035954603202033, 0.25185460705066687, 0.06966097347872613, 3.14, 0.1, 0]
+    for exp_name in ["pike4_sensor2_exp1"]:
         robot = UR5e(enable_force=1,file_name=exp_name)
         velostat = VelostatSensor(debug=False,file_name=exp_name)
         process_velostat = Process(target=read_data_from_velostat,args=(velostat,))
@@ -49,7 +49,7 @@ def multiple_exp_sensor_multitouch(fl=0):
                 sensor_pos = robot.basic_start()
                 fl = 1
             starting_experiment_time(exp_name)
-            robot.sensor_point_load(sensor_pos,13,15,lp=4,wp=4,repeats=1,Fd_ideal=42,Fd_real=49,h_init=0.075)
+            robot.sensor_point_load(sensor_pos,13,15,lp=4,wp=4,repeats=1,Fd_ideal=46.2,Fd_real=49.2,h_init=0.075)
             robot.shutdown_robot()
             print("I am here")
             process_velostat.terminate()
@@ -60,7 +60,7 @@ def multiple_exp_sensor_multitouch(fl=0):
 
 if __name__ == '__main__':
     # sensor_multitouch("pike0_sensor1_exp1")
-    multiple_exp_sensor_multitouch(fl=1)
+    multiple_exp_sensor_multitouch(fl=2)
 
 
 

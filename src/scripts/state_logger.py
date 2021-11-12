@@ -232,7 +232,7 @@ class StateLogger:
 if __name__ == '__main__':
     state_logger = StateLogger()
     logger.debug("kek")
-    p = state_logger.read_all_data_for_drawing_froce_comp("pike4_sensor1_exp1")
+    p = state_logger.read_all_data_for_drawing_froce_comp("pike4_sensor2_exp1")
     p = state_logger.data_preprocessing_for_force_comparison(p)
     # velostat_peaks, futek_peaks = state_logger.find_pikes_from_velostat_and_futek(p)
     # state_logger.bar_chart_3d()
