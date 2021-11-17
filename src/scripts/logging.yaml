@@ -19,7 +19,7 @@ handlers:
 loggers:
   simpleExample:
     level: DEBUG
-    handlers: [console,file]
+    handlers: [console]
     propogate: no
 root:
   level: DEBUG

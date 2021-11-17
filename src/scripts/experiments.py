@@ -1,5 +1,5 @@
 from multiprocessing import Process
-from time import sleep
+from time import sleep, perf_counter
 from ur5e import UR5e
 from velostat_sensor import VelostatSensor
 import datetime
@@ -58,10 +58,46 @@ def multiple_exp_sensor_multitouch(fl=0):
             robot.rob_c.speedL([0,0,0,0,0,0], robot.MAX_OPERATIONAL_ACC, 1)
             print('Robot is stopped')
 
+def data_for_least_square():
+        experiments = {0.020:"empty->3d printed stuff",
+                    0.1:"empty->black metal ",
+                    0.252:"empty->phone"}
+        time_limit = 60
+        VELOSTAT_THRESHOLD = 1300
+        sensor_names = ["sensor1", "sensor2"]
+        for cur_sensor in sensor_names:
+            print("Make the experiment with " + cur_sensor + " sensor. \n Press enter if ready")
+            input()
+            for cur_exp_key, cur_exp_val in experiments.items():
+                print("Your experiment is " + str(cur_exp_val) + ". \n Press enter if ready")
+                input()
+                fl = False
+
+                while fl == False:
+                    velostat = VelostatSensor(file_name="data_for_least_square_"+cur_sensor + "_"+str(cur_exp_key),debug=1)
+                    K = True
+                    fl1 = False
+                    write_to_file_var=0                    
+                    t0= perf_counter()
+                    while True and K:
+                        data = velostat.readData(write_to_file=write_to_file_var,msg=str(cur_exp_key))[0]
+                        if data < VELOSTAT_THRESHOLD:
+                            if fl1 == False:
+                                write_to_file_var = 1
+                                fl1 = True
+                            K  = perf_counter() - t0 <= time_limit
+                    velostat.close()
+                    print("Do you want to continue an experiment, if yes - enter, no - write smth")
+                    temp = input()
+                    if temp=="":
+                        fl = True
+                    if len(temp) > 1:
+                        print("repeat an exeriment")
+
 if __name__ == '__main__':
     # sensor_multitouch("pike0_sensor1_exp1")
-    multiple_exp_sensor_multitouch(fl=2)
-
+    # multiple_exp_sensor_multitouch(fl=1)
+    data_for_least_square()
 
 
 

@@ -1,11 +1,10 @@
-
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import normalize
-from numpy import array, ones, zeros
+from numpy import array, ones, zeros,exp
 from setup_logger import logger
 from os.path import isfile
 from scipy.signal import find_peaks
-
+from scipy.optimize import least_squares
 
 class StateLogger:
     def __init__(self) -> None:
@@ -51,6 +50,46 @@ class StateLogger:
         t_futek, data_futek, text_futek =self.read_data_from_futek_or_velostat("futek_data",name)
         logger.debug(len(t_vel))
         return [[t_vel,t_futek],[data_vel,data_futek],[text_vel,text_futek]]
+
+
+    def fun(self, x, t, y):
+        p = 0.1
+        t_0 = 0
+
+        k_p = x[1]*exp(-x[2]*p)
+        tau_res = x[4]+x[5]*exp(-p/x[6])
+
+        return x[0] + p*(k_p+x[3]*(1-exp(-(t-t_0)/tau_res)))*(1-exp(-x[7]/p)) - y
+
+    def fun_test(self, x, t):
+        p = 0.1
+        t_0 = 0
+
+        k_p = x[1]*exp(-x[2]*p)
+        tau_res = x[4]+x[5]*exp(-p/x[6])
+
+        return x[0] + p*(k_p+x[3]*(1-exp(-(t-t_0)/tau_res)))*(1-exp(-x[7]/p))
+
+    def draw_velostat_data_with_fitting(self, t, data):
+        data = array(data)
+        data = 1/data
+        t = array(t)
+        t = t - t[0]
+        x_kek = [0.047,2.592,0.693,0.736,0.4,16.5,0.4,2.0]
+        x_init = x_kek.copy()
+
+        res_robust = least_squares(self.fun, x_init, loss="soft_l1", f_scale= 0.1, args=(t, data))
+        print(res_robust.x)
+
+        predict_data = self.fun_test([*res_robust.x],t)
+        # predict_data = self.fun_test([-0.19869451,2.20873776,0.93442205,0.01167769,-5.08459372,11.24773046, -4.43790163,2.9861408 ],t)
+
+        plt.plot(t, data, 'o', label='data')
+        plt.plot(t, predict_data, label='least square')
+        plt.xlabel('$t$')
+        plt.ylabel('$y$')
+        plt.legend()
+        plt.show()
 
     def data_preprocessing_for_force_comparison(self, whole_list):
         # Normalize futek data
@@ -231,9 +270,11 @@ class StateLogger:
 
 if __name__ == '__main__':
     state_logger = StateLogger()
-    logger.debug("kek")
-    p = state_logger.read_all_data_for_drawing_froce_comp("pike4_sensor2_exp1")
-    p = state_logger.data_preprocessing_for_force_comparison(p)
-    # velostat_peaks, futek_peaks = state_logger.find_pikes_from_velostat_and_futek(p)
-    # state_logger.bar_chart_3d()
-    state_logger.draw_force_comparison(p)
+    # logger.debug("kek")
+    # p = state_logger.read_all_data_for_drawing_froce_comp("pike4_sensor2_exp1")
+    # p = state_logger.data_preprocessing_for_force_comparison(p)
+    # # velostat_peaks, futek_peaks = state_logger.find_pikes_from_velostat_and_futek(p)
+    # # state_logger.bar_chart_3d()
+    # state_logger.draw_force_comparison(p)
+    t,data,_ = state_logger.read_data_from_futek_or_velostat("velostat_data","data_for_least_square_sensor10.1")
+    state_logger.draw_velostat_data_with_fitting(t,data)
