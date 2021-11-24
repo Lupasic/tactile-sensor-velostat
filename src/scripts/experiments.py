@@ -37,13 +37,13 @@ def sensor_multitouch(exp_name):
 
 def multiple_exp_sensor_multitouch(fl=0):
     # sensor 1
-    # sensor_pos = [-0.5792462414039549, 0.22161784199712997, 0.06818361500999862, 3.14, 0.1, 0]
+    sensor_pos = [-0.5792462414039549, 0.22161784199712997, 0.06818361500999862, 3.14, 0.1, 0]
     # sensor 2
     # sensor_pos = [-0.5809926689165119, 0.19787852826315594, 0.06846670629401433, 3.14, 0.1, 0]
     # sensor 3
-    sensor_pos = [-0.5817922224967008, 0.17354650244643094, 0.06905110207521711, 3.14, 0.1, 0]
-    exp_names = ["pike5_sensor3_exp1","pike5_sensor3_exp2"]
-    folder_exp_name = "pike5"
+    # sensor_pos = [-0.5817922224967008, 0.17354650244643094, 0.06905110207521711, 3.14, 0.1, 0]
+    exp_names = ["pike1_40_force_sensor1_exp1","pike1_40_force_sensor1_exp2"]
+    folder_exp_name = "pike1_force_40"
     robot = UR5e(enable_force=1,file_name=exp_names[0],folder_name="futek_data/"+folder_exp_name)
     fll = 0
     for exp_name in exp_names:
@@ -60,7 +60,7 @@ def multiple_exp_sensor_multitouch(fl=0):
                 sensor_pos = robot.basic_start()
                 fl = 1
             starting_experiment_time(exp_name)
-            robot.sensor_point_load(sensor_pos,15,15,lp=5,wp=5,repeats=1,Fd_ideal=43,Fd_real=49,h_init=0.075)
+            robot.sensor_point_load(sensor_pos,15,15,lp=5,wp=5,repeats=1,Fd_ideal=43,Fd_real=40,h_init=0.075)
             
             print("I am here")
             # kill velostat and futek for new iteration
