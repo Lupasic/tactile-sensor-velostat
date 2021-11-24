@@ -11,7 +11,7 @@ def read_data_from_velostat(velostat):
 def starting_experiment_time(exp_name):
     experiment_start_timestamp = datetime.datetime.now().timestamp()
     print(f'Experiment starts {experiment_start_timestamp}')
-    text_file_name = "/home/app/tactile_sensor_velostat/experimental_data/starting_experiment_" + exp_name +".txt"
+    text_file_name = "/home/app/tactile_sensor_velostat/experimental_data/starting_exp_time/starting_experiment_" + exp_name +".txt"
     text_file = open(text_file_name,"w")
     text_file.write(str(experiment_start_timestamp) + "\n")
     text_file.close()
@@ -37,9 +37,15 @@ def sensor_multitouch(exp_name):
 
 def multiple_exp_sensor_multitouch(fl=0):
     sensor_pos = [-0.7035954603202033, 0.25185460705066687, 0.06966097347872613, 3.14, 0.1, 0]
-    for exp_name in ["pike4_sensor2_exp1"]:
-        robot = UR5e(enable_force=1,file_name=exp_name)
-        velostat = VelostatSensor(debug=False,file_name=exp_name)
+    exp_names = ["pike4_sensor2_exp1","pike4_sensor2_exp2","pike4_sensor2_exp3"]
+    folder_exp_name = "pike4"
+    robot = UR5e(enable_force=1,file_name=exp_names[0],folder_name="futek_data/"+folder_exp_name)
+    fll = 0
+    for exp_name in exp_names:
+        if fll == 1:
+            robot.set_force_sensor(exp_name,folder_name="futek_data/"+folder_exp_name)
+        fll = 1
+        velostat = VelostatSensor(debug=False,file_name=exp_name,folder_name="velostat_data/"+folder_exp_name)
         process_velostat = Process(target=read_data_from_velostat,args=(velostat,))
         process_velostat.start()
         try:
@@ -49,14 +55,19 @@ def multiple_exp_sensor_multitouch(fl=0):
                 sensor_pos = robot.basic_start()
                 fl = 1
             starting_experiment_time(exp_name)
-            robot.sensor_point_load(sensor_pos,13,15,lp=4,wp=4,repeats=1,Fd_ideal=46.2,Fd_real=49.2,h_init=0.075)
-            robot.shutdown_robot()
+            robot.sensor_point_load(sensor_pos,13,15,lp=0,wp=0,repeats=1,Fd_ideal=46.2,Fd_real=41.2,h_init=0.075)
+            
             print("I am here")
+            # kill velostat and futek for new iteration
+            sleep(0.5)
+            robot.disable_force_sensor()
             process_velostat.terminate()
             sleep(1)
         except KeyboardInterrupt:
             robot.rob_c.speedL([0,0,0,0,0,0], robot.MAX_OPERATIONAL_ACC, 1)
             print('Robot is stopped')
+    robot.shutdown_robot()
+
 
 def data_for_least_square():
         experiments = {0.020:"empty->3d printed stuff",
@@ -74,7 +85,7 @@ def data_for_least_square():
                 fl = False
 
                 while fl == False:
-                    velostat = VelostatSensor(file_name="data_for_least_square_"+cur_sensor + "_"+str(cur_exp_key),debug=1)
+                    velostat = VelostatSensor(file_name="static_weigt"+cur_sensor + "_"+str(cur_exp_key),debug=1)
                     K = True
                     fl1 = False
                     write_to_file_var=0                    
@@ -96,8 +107,8 @@ def data_for_least_square():
 
 if __name__ == '__main__':
     # sensor_multitouch("pike0_sensor1_exp1")
-    # multiple_exp_sensor_multitouch(fl=1)
-    data_for_least_square()
+    multiple_exp_sensor_multitouch(fl=0)
+    # data_for_least_square()
 
 
 

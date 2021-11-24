@@ -33,10 +33,17 @@ class UR5e:
         self.process_rob_r.start()
 
         if enable_force:
-            futek = FutekSensor(debug=0,file_name=file_name, folder_name=folder_name)
-            self.process_futek = Process(target=self.read_data_from_force_sensor,args=(futek,))
+            self.set_force_sensor(file_name,folder_name)
+    
+    def set_force_sensor(self,file_name,folder_name="futek_data"):
+            self.futek = FutekSensor(debug=0,file_name=file_name, folder_name=folder_name)
+            self.process_futek = Process(target=self.read_data_from_force_sensor,args=(self.futek,))
             self.process_futek.start()
-        
+    
+    def disable_force_sensor(self):
+        self.futek.close()
+        self.process_futek.terminate()
+
 
     def init_states(self):
         self.cur_state = Manager().Namespace()

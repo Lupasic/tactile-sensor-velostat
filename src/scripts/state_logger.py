@@ -19,7 +19,7 @@ class StateLogger:
 
     def read_data_from_futek_or_velostat(self, folder_name, pure_file_name): 
         starting_exp_timestamp = 0.0
-        starting_exp_timestamp_file_path = "/home/app/tactile_sensor_velostat/experimental_data/starting_experiment_"+pure_file_name+".txt"
+        starting_exp_timestamp_file_path = "/home/app/tactile_sensor_velostat/experimental_data/starting_exp_time/starting_experiment_"+pure_file_name+".txt"
         if isfile(starting_exp_timestamp_file_path):
             tex_file = open(starting_exp_timestamp_file_path,mode="r")
             starting_exp_timestamp = float(tex_file.readline())
@@ -45,9 +45,11 @@ class StateLogger:
                 text.append("")
         return t, data, text
 
-    def read_all_data_for_drawing_froce_comp(self, name):
-        t_vel, data_vel, text_vel = self.read_data_from_futek_or_velostat("velostat_data",name)
-        t_futek, data_futek, text_futek =self.read_data_from_futek_or_velostat("futek_data",name)
+    def read_all_data_for_drawing_froce_comp(self, name, folder_subname=""):
+        if folder_subname != "":
+            folder_subname = "/" + folder_subname
+        t_vel, data_vel, text_vel = self.read_data_from_futek_or_velostat("velostat_data"+folder_subname,name)
+        t_futek, data_futek, text_futek =self.read_data_from_futek_or_velostat("futek_data"+folder_subname,name)
         logger.debug(len(t_vel))
         return [[t_vel,t_futek],[data_vel,data_futek],[text_vel,text_futek]]
 
@@ -271,10 +273,10 @@ class StateLogger:
 if __name__ == '__main__':
     state_logger = StateLogger()
     # logger.debug("kek")
-    # p = state_logger.read_all_data_for_drawing_froce_comp("pike4_sensor2_exp1")
-    # p = state_logger.data_preprocessing_for_force_comparison(p)
+    p = state_logger.read_all_data_for_drawing_froce_comp("pike4_sensor2_exp3",folder_subname="pike4")
+    p = state_logger.data_preprocessing_for_force_comparison(p)
     # # velostat_peaks, futek_peaks = state_logger.find_pikes_from_velostat_and_futek(p)
     # # state_logger.bar_chart_3d()
-    # state_logger.draw_force_comparison(p)
-    t,data,_ = state_logger.read_data_from_futek_or_velostat("velostat_data","data_for_least_square_sensor10.1")
-    state_logger.draw_velostat_data_with_fitting(t,data)
+    state_logger.draw_force_comparison(p)
+    # t,data,_ = state_logger.read_data_from_futek_or_velostat("velostat_data","data_for_least_square_sensor10.1")
+    # state_logger.draw_velostat_data_with_fitting(t,data)
