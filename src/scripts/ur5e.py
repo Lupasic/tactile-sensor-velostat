@@ -299,7 +299,7 @@ class UR5e:
             cur_points=[]
             # eps is needed for lp or wp eual to zero, then we will do only 0 point)
             for xx in arange(w/(2*wp),(w-w/(2*wp))+eps,w/wp+eps):
-                for yy in arange(l/(2*lp),(l-l/(2*lp))+eps,l/lp+eps):
+                for yy in arange(l/(2*lp),(l-l/(2*lp))+eps,l/(lp)+eps):
                     temp = array(starting_pos)-array([xx,yy]+[0,0,0,0])
                     cur_points.append(list(temp))
             for cur_poss in cur_points:
