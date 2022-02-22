@@ -89,7 +89,7 @@ class StateLogger:
         plt.plot(t, data, 'o', label='data')
         plt.plot(t, predict_data, label='least square')
         plt.xlabel('$t$')
-        plt.ylabel('$y$')
+        plt.ylabel('Force, value')
         plt.legend()
         plt.show()
 
@@ -179,30 +179,52 @@ class StateLogger:
         return velostat_pikes, futek_pikes
 
     def draw_force_comparison(self, whole_list):
-        fig, ax = plt.subplots(nrows=3, ncols=1, constrained_layout=True)
+        # fig, ax = plt.subplots(nrows=3, ncols=1, constrained_layout=True)
         # plt.subplots_adjust(top=0.925,bottom=0.1,left=0.155,
         # right=0.845,hspace=0.4,wspace=0.2)
 
-        plt.suptitle("Force comparison")
-        ax[0].plot(whole_list[0][1], whole_list[1][1])
-        ax[0].set_title("Futek sensor data")
-        ax[0].set_xlabel("time, sec")
-        ax[0].set_ylabel("Force, value")
-        # ax[1].legend(loc="upper right")
+        # plt.suptitle("Force comparison")
+        # ax[0].plot(whole_list[0][1], whole_list[1][1])
+        # ax[0].set_title("Futek sensor data")
+        # ax[0].set_xlabel("time, sec")
+        # ax[0].set_ylabel("Force, value")
+        # # ax[1].legend(loc="upper right")
         
         
-        ax[1].plot(whole_list[0][0], whole_list[1][0])
-        ax[1].set_title("Velostat sensor data")
-        ax[1].set_xlabel("time, sec")
-        ax[1].set_ylabel("Force, value")
-        # ax[0].legend(loc="upper right")
+        # ax[1].plot(whole_list[0][0], whole_list[1][0])
+        # ax[1].set_title("Velostat sensor data")
+        # ax[1].set_xlabel("time, sec")
+        # ax[1].set_ylabel("Force, value")
+        # # ax[0].legend(loc="upper right")
 
-        ax[2].plot(whole_list[0][1], whole_list[1][1], label="futek data")
-        ax[2].plot(whole_list[0][0], whole_list[1][0], label="velostat data")
-        ax[2].set_title("Velostat and Futek data on the same plot")
-        ax[2].set_xlabel("time, sec")
-        ax[2].set_ylabel("Force, value")
-        ax[2].legend(loc="upper right")
+        # ax[2].plot(whole_list[0][1], whole_list[1][1], label="futek data")
+        # ax[2].plot(whole_list[0][0], whole_list[1][0], label="velostat data")
+        # ax[2].set_title("Velostat and Futek data on the same plot")
+        # ax[2].set_xlabel("time, sec")
+        # ax[2].set_ylabel("Force, value")
+        # ax[2].legend(loc="upper right")
+        SMALL_SIZE = 18
+        MEDIUM_SIZE = 18
+        BIGGER_SIZE = 24
+
+        plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+        plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+        plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+        plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+        plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+        plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+
+        plt.plot(whole_list[0][1], whole_list[1][1], label="futek data")
+        plt.plot(whole_list[0][0], whole_list[1][0], label="velostat data")
+        plt.title("Velostat and Futek data on the same plot")
+        plt.xlabel("time, sec")
+        plt.ylabel("Force, value")
+        plt.legend(loc="upper right")
+
+
+
+
         plt.show()
 
 
@@ -273,7 +295,7 @@ class StateLogger:
 if __name__ == '__main__':
     state_logger = StateLogger()
     # logger.debug("kek")
-    p = state_logger.read_all_data_for_drawing_froce_comp("pike1_force_10_sensor1_exp1",folder_subname="pike1_force_10")
+    p = state_logger.read_all_data_for_drawing_froce_comp("pike1_sensor1_exp2",folder_subname="pike1")
     p = state_logger.data_preprocessing_for_force_comparison(p)
     # # velostat_peaks, futek_peaks = state_logger.find_pikes_from_velostat_and_futek(p)
     # # state_logger.bar_chart_3d()

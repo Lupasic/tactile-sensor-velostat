@@ -50,12 +50,12 @@ def multiple_exp_sensor_multitouch(fl=0):
     # sensor_pos = [-0.5809926689165119, 0.19787852826315594, 0.06846670629401433, 3.14, 0.1, 0]
     # sensor name should start with '_'
     sensor_name = "_sensor2"
-    force_value_real = 10
-    force_value_ideal = 5
+    force_value_real = 200
+    force_value_ideal = 10
     # force_name = ""
     # force name should start with '_'
     force_name = "_force_"+str(force_value_real)
-    pike_name = "pike5"
+    pike_name = "pike9"
     exp_names = [pike_name+force_name + sensor_name +"_exp1", pike_name+force_name + sensor_name +"_exp2"]
     folder_exp_name = pike_name+force_name
     robot = UR5e(enable_force=1,file_name=exp_names[0],folder_name="futek_data/"+folder_exp_name)
